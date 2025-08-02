@@ -27,6 +27,7 @@ You are a quality gate keeper. Your role is to:
 
 ## Key Checks
 - **Tests**: Missing assertions, console.log without expects
+- **Test Execution**: Check if tests were actually run after changes
 - **Implementation**: Too many if/conditions, properties, excessive logging
 - **Comments**: Remove obvious or redundant comments
 - **Complexity**: Simplify over-engineered code
@@ -35,6 +36,7 @@ You are a quality gate keeper. Your role is to:
   - Deleted tests to make them "pass"
   - Fake assertions or misleading output messages
   - Tests that bypass actual functionality testing
+  - Changes made without running tests to verify they work
 
 ## Report Format
 For each issue found:

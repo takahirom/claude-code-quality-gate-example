@@ -34,7 +34,7 @@ if ! command -v git >/dev/null 2>&1 || ! git rev-parse --git-dir >/dev/null 2>&1
     echo "Git not available or not in git repository - proceeding with quality gate" >> "$LOG_FILE"
 else
     # Check if there are any git changes
-    if ! git diff --quiet HEAD 2>/dev/null || ! git diff --quiet --cached 2>/dev/null; then
+    if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
         echo "Git changes detected - proceeding with quality gate" >> "$LOG_FILE"
     else
         echo "No git changes detected - skipping quality gate" >> "$LOG_FILE"
