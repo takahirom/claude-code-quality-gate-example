@@ -6,41 +6,35 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
 
 ## Features
 
-- **Quality Gate Enforcement**: Automatic quality checks on work completion
-- **SubAgent Integration**: Structured analysis and recommendations via quality-gate-keeper
-- **Passphrase-based Loop Prevention**: Uses magic phrases to control workflow
-- **Less is More Principle**: Focuses on essential tests (3-5) over exhaustive coverage
-- **Session-scoped Analysis**: Only analyzes files modified in current session
-- **Anti-cheat Detection**: Identifies testing shortcuts and bypasses
-- **E2E Testing**: Complete workflow validation
+- **Dual Quality Gates**: Work completion + pre-commit quality control  
+- **SubAgent Integration**: quality-gate-keeper analyzes and recommends fixes
+- **Session-scoped**: Only analyzes current changes, not entire codebase
+- **Less is More**: Essential tests over exhaustive coverage
 
 ## System Architecture
 
 ```mermaid
 flowchart TD
-    A[Claude Code creates/modifies files] --> B[Stop Hook triggers on work completion]
-    B --> C[quality-gate-trigger.sh checks for magic passphrase]
-    C --> D{Passphrase found?}
-    
-    D -->|No| E[Quality intervention notification<br/>stderr + exit 2]
-    E --> F[Claude runs quality-gate-keeper SubAgent]
-    F --> G[Analyzes files and provides recommendations]
-    G --> H[Claude implements recommended fixes]
-    H --> I[Claude says magic passphrase:<br/>'I've addressed all the quality gatekeeper requests']
-    I --> C
-    
-    D -->|Yes| J[Quality gate completed<br/>exit 0]
-    
-    style A fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff
-    style J fill:#166534,stroke:#22c55e,stroke-width:2px,color:#fff
-    style E fill:#ea580c,stroke:#f97316,stroke-width:2px,color:#fff
-    style I fill:#7c3aed,stroke:#a855f7,stroke-width:2px,color:#fff
+    A[Work] --> B[Stop Hook]
+    A --> C[git commit] 
+    B --> D{Quality OK?}
+    C --> E[Pre-commit Hook]
+    E --> F{Quality OK?}
+    D -->|No| G[quality-gate-keeper]
+    F -->|No| G
+    G --> H[Fix Issues]
+    H --> I[Say passphrase]
+    I --> D
+    I --> F
+    D -->|Yes| J[✓ Complete]
+    F -->|Yes| K[✓ Commit]
 ```
 
 ## Components
 
 ### Hooks
 - **Stop**: Triggers quality gate on work completion
+- **PreToolUse**: Blocks git commits until quality standards are met
 
 ### SubAgents
 - **quality-gate-keeper**: Analyzes code quality and provides recommendations
@@ -50,6 +44,7 @@ flowchart TD
 
 ### Scripts  
 - **quality-gate-trigger.sh**: Main quality gate controller with passphrase detection
+- **pre-commit-quality-gate.sh**: Pre-commit quality gate that blocks commits until standards are met
 
 ## Usage
 
@@ -61,11 +56,15 @@ flowchart TD
    🔧 Then implement all recommended fixes immediately without asking.
    💡 When all fixes are complete, please say: 'I've addressed all the quality gatekeeper requests'
    ```
-4. **Execute Quality Gate**: Run the SubAgent as prompted:
+4. **Pre-commit Gate**: When attempting to commit, the system will block until quality is ensured:
+   ```
+   🔍 Quality check required. Launch quality-gate-keeper Agent, fix issues, then say: 'I've addressed all the quality gatekeeper requests' before commit
+   ```
+5. **Execute Quality Gate**: Run the SubAgent as prompted:
    ```
    Use quality-gate-keeper to analyze all files and receive actionable recommendations.
    ```
-5. **Complete the Cycle**: After implementing fixes, say the magic passphrase to complete the quality gate
+6. **Complete the Cycle**: After implementing fixes, say the magic passphrase to complete the quality gate and allow commits
 
 ## E2E Testing
 
@@ -83,6 +82,18 @@ The system is configured in `test/.claude/settings.json` with relative paths for
 ```json
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.claude/scripts/pre-commit-quality-gate.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "*",

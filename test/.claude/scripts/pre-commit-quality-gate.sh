@@ -16,7 +16,7 @@ if [[ "$command" =~ git[[:space:]]+commit ]]; then
         fi
     fi
     
-    echo "🔍 Quality check required. Launch quality-gate-keeper Agent, fix issues, then say: '$PASSPHRASE'" >&2
+    echo "🔍 Quality check required. Launch quality-gate-keeper Agent, fix issues, then say: '$PASSPHRASE' before commit" >&2
     exit 2
 fi
 
