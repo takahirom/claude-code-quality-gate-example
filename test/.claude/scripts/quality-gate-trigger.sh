@@ -29,6 +29,19 @@ if [[ -f "$transcript_path" ]]; then
     fi
 fi
 
+# Check if git is available and we're in a git repo
+if ! command -v git >/dev/null 2>&1 || ! git rev-parse --git-dir >/dev/null 2>&1; then
+    echo "Git not available or not in git repository - proceeding with quality gate" >> "$LOG_FILE"
+else
+    # Check if there are any git changes
+    if ! git diff --quiet HEAD 2>/dev/null || ! git diff --quiet --cached 2>/dev/null; then
+        echo "Git changes detected - proceeding with quality gate" >> "$LOG_FILE"
+    else
+        echo "No git changes detected - skipping quality gate" >> "$LOG_FILE"
+        exit 0
+    fi
+fi
+
 # Trigger quality intervention
 echo "✅ Work completion detected. Please launch quality-gate-keeper Agent to perform quality inspection." >&2
 echo "🔧 Then implement all recommended fixes immediately without asking." >&2
