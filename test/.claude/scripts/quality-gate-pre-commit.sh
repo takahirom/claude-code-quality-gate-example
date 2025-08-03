@@ -19,7 +19,7 @@ if [[ "$command" =~ git[[:space:]]+commit ]]; then
         fi
     fi
     
-    echo "🔍 Quality check required. Use Task tool with subagent_type='quality-gate-keeper', fix issues, then say: '$PASSPHRASE'" >&2
+    echo "🔍 Quality check required. Use Task tool with subagent_type='quality-gate-keeper', fix issues, then say: '$PASSPHRASE' and retry commit" >&2
     exit 2
 fi
 

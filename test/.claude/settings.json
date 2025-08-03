@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./.claude/scripts/pre-commit-quality-gate.sh",
+            "command": "./.claude/scripts/quality-gate-pre-commit.sh",
             "timeout": 30
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./.claude/scripts/quality-gate-trigger.sh",
+            "command": "./.claude/scripts/quality-gate-stop.sh",
             "timeout": 30
           }
         ]
