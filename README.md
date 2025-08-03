@@ -43,8 +43,8 @@ flowchart TD
   - Detects testing cheats and shortcuts
 
 ### Scripts  
-- **quality-gate-trigger.sh**: Main quality gate controller with passphrase detection
-- **pre-commit-quality-gate.sh**: Pre-commit quality gate that blocks commits until standards are met
+- **quality-gate-stop.sh**: Main quality gate controller with passphrase detection
+- **quality-gate-pre-commit.sh**: Pre-commit quality gate that blocks commits until standards are met
 
 ## Usage
 
@@ -88,7 +88,7 @@ The system is configured in `test/.claude/settings.json` with relative paths for
         "hooks": [
           {
             "type": "command",
-            "command": "./.claude/scripts/pre-commit-quality-gate.sh",
+            "command": "./.claude/scripts/quality-gate-pre-commit.sh",
             "timeout": 30
           }
         ]
@@ -100,7 +100,7 @@ The system is configured in `test/.claude/settings.json` with relative paths for
         "hooks": [
           {
             "type": "command", 
-            "command": "./.claude/scripts/quality-gate-trigger.sh",
+            "command": "./.claude/scripts/quality-gate-stop.sh",
             "timeout": 30
           }
         ]
