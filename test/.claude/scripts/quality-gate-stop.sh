@@ -20,8 +20,9 @@ echo "Input JSON: $input_json" >> "$LOG_FILE"
 # Check if Claude said the magic passphrase in recent transcript
 transcript_path=$(echo "$input_json" | jq -r '.transcript_path')
 if [[ -f "$transcript_path" ]]; then
-    # Check only the last 2 lines of transcript for the passphrase
-    if tail -n 2 "$transcript_path" | grep -qw "$PASSPHRASE"; then
+    # Check only the last line of transcript for the passphrase
+    # Note: Using grep -q instead of grep -qw because -w doesn't work correctly with JSON content
+    if tail -n 1 "$transcript_path" | grep -q "$PASSPHRASE"; then
         echo "Magic passphrase detected: '$PASSPHRASE'" >> "$LOG_FILE"
         echo "Quality gate completed successfully!" >> "$LOG_FILE"
         exit 0

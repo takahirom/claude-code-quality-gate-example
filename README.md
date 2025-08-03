@@ -4,30 +4,34 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
 
 > **⚠️ Disclaimer**: This system is provided as-is for educational and experimental purposes. Use at your own risk. The authors are not responsible for any issues, data loss, or unexpected behavior that may occur from using this automation system. Please test thoroughly in a safe environment before using in production.
 
-## Features
-
-- **Dual Quality Gates**: Work completion + pre-commit quality control  
-- **SubAgent Integration**: quality-gate-keeper analyzes and recommends fixes
-- **Session-scoped**: Only analyzes current changes, not entire codebase
-- **Less is More**: Essential tests over exhaustive coverage
-
 ## System Architecture
 
 ```mermaid
 flowchart TD
-    A[Stop Hook] --> B{Quality OK?}
-    B -->|No| C[quality-gate-keeper]
-    C --> D[Fix Issues]
-    D --> E[Say passphrase]
-    E --> B
-    B -->|Yes| F[✓ Session Complete]
-    
-    G[Pre-commit Hook] --> H{Quality OK?}
-    H -->|No| I[quality-gate-keeper]
-    I --> J[Fix Issues]
+    A[Claude Code<br/>ends work] --> B[Stop Hook] 
+    B --> C[quality-gate-stop.sh]
+    C --> D{Passphrase in<br/>last line?}
+    D -->|Yes| E[✓ Session Complete]
+    D -->|No| F{git changes?}
+    F -->|No| E
+    F -->|Yes| G[Show message:<br/>Use quality-gate-keeper]
+    G --> H[Claude Code<br/>launches SubAgent]
+    H --> I[quality-gate-keeper<br/>checks quality]
+    I --> J[Claude Code<br/>performs fixes]
     J --> K[Say passphrase]
-    K --> H
-    H -->|Yes| L[✓ Commit]
+    K --> B
+    
+    L[Claude Code<br/>runs git commit] --> M[PreToolUse Hook] 
+    M --> N[quality-gate-pre-commit.sh]
+    N --> O{Passphrase in<br/>last 2 lines?}
+    O -->|Yes| P[✓ Allow Commit]
+    O -->|No| Q[Show message:<br/>Use quality-gate-keeper]
+    Q --> R[Claude Code<br/>launches SubAgent]
+    R --> S[quality-gate-keeper<br/>checks quality]
+    S --> T[Claude Code<br/>performs fixes]
+    T --> U[Say passphrase]
+    U --> V[Retry git commit]
+    V --> M
 ```
 
 ## Components
@@ -70,7 +74,7 @@ flowchart TD
 
 Run the complete test suite:
 ```bash
-./test-e2e-isolated.sh
+./e2e-test.sh
 ```
 
 This validates the entire workflow from test creation to quality intervention.
@@ -113,14 +117,18 @@ The system is configured in `test/.claude/settings.json` with relative paths for
 ## Key Features
 
 ### Magic Passphrase System
-The system uses `"I've addressed all the quality gatekeeper requests"` as a completion signal to prevent infinite loops while ensuring all quality issues are resolved.
+The system supports two passphrase patterns to balance quality and speed:
 
-### Quality Gate Philosophy
-- **Less is More**: Recommends 3-5 essential tests instead of exhaustive suites
-- **Session-focused**: Only analyzes files modified in current work session
-- **Anti-cheat**: Detects testing shortcuts and bypasses
+1. **Approval Pattern** (default): `"I have launched the quality gate keeper subagent and received approval"`
+   - Requires approval from quality-gate-keeper SubAgent
+   - More quality-focused approach
 
-This ensures the system works across different user environments without hardcoded paths.
+2. **Address-All Pattern**: `"I have launched the quality gate keeper subagent and addressed all requests"`
+   - Proceeds once fixes are completed
+   - More speed-focused approach
+
+Configure the passphrase in `common-config.sh` to switch between patterns.
+
 
 ## Important Notes
 
