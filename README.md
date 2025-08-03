@@ -2,7 +2,7 @@
 
 A complete quality automation system using Claude Code Hooks and SubAgents to enforce code quality standards automatically.
 
-> **⚠️ Disclaimer**: This system is provided as-is for educational and experimental purposes. Use at your own risk. The authors are not responsible for any issues, data loss, or unexpected behavior that may occur from using this automation system. Please test thoroughly in a safe environment before using in production.
+> **⚠️ Note**: The passphrase system may cause infinite loops if quality standards are too strict. Use at your own risk.
 
 ## How to Install (Global Settings)
 
