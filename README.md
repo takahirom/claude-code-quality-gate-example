@@ -1,4 +1,4 @@
-# Claude Code Quality Gate Automation System
+# Claude Code Quality Gate Example
 
 A complete quality automation system using Claude Code Hooks and SubAgents to enforce code quality standards automatically.
 
@@ -6,11 +6,10 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
 
 ## How to Install (Global Settings)
 
-1. Copy the scripts to a permanent location:
+1. Clone this repository:
    ```bash
-   mkdir -p ~/claude-quality-gate
-   cp -r .claude/scripts ~/claude-quality-gate/
-   chmod +x ~/claude-quality-gate/scripts/*.sh
+   git clone https://github.com/takahirom/claude-code-quality-gate-example.git ~/claude-quality-gate
+   chmod +x ~/claude-quality-gate/.claude/scripts/*.sh
    ```
 
 2. Add to your global Claude Code settings (`~/.claude/settings.json`):
@@ -23,7 +22,7 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
            "hooks": [
              {
                "type": "command",
-               "command": "~/claude-quality-gate/scripts/quality-gate-pre-commit.sh",
+               "command": "~/claude-quality-gate/.claude/scripts/quality-gate-pre-commit.sh",
                "timeout": 30
              }
            ]
@@ -35,7 +34,7 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
            "hooks": [
              {
                "type": "command",
-               "command": "~/claude-quality-gate/scripts/quality-gate-stop.sh",
+               "command": "~/claude-quality-gate/.claude/scripts/quality-gate-stop.sh",
                "timeout": 30
              }
            ]
@@ -45,10 +44,10 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
    }
    ```
 
-3. Copy the SubAgent definition:
+3. Link the SubAgent definition:
    ```bash
    mkdir -p ~/.claude/agents
-   cp .claude/agents/quality-gate-keeper.md ~/.claude/agents/
+   ln -s ~/claude-quality-gate/.claude/agents/quality-gate-keeper.md ~/.claude/agents/
    ```
 
 4. Ensure dependencies are installed:
@@ -60,7 +59,7 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
    sudo apt-get install jq
    ```
 
-## System Architecture
+## Execution Flow
 
 ```mermaid
 flowchart TD
@@ -93,38 +92,14 @@ flowchart TD
 ## Components
 
 ### Hooks
-- **Stop**: Triggers quality gate on work completion
-- **PreToolUse**: Blocks git commits until quality standards are met
+- **Stop**: Launches `quality-gate-stop.sh` when work ends - prompts SubAgent activation if changes detected
+- **PreToolUse**: Launches `quality-gate-pre-commit.sh` on git commit - prompts SubAgent activation if quality check needed
 
 ### SubAgents
 - **quality-gate-keeper**: Analyzes code quality and provides recommendations
   - Focuses on session changes only
   - Applies "Less is More" principle
   - Detects testing cheats and shortcuts
-
-### Scripts  
-- **quality-gate-stop.sh**: Main quality gate controller with passphrase detection
-- **quality-gate-pre-commit.sh**: Pre-commit quality gate that blocks commits until standards are met
-
-## Usage
-
-1. **Setup**: Place the system in your project's `.claude/` directory
-2. **Development**: Code normally - the system monitors automatically  
-3. **Quality Gate Triggered**: When you complete work, the system will prompt:
-   ```
-   ✅ Work completion detected. Please launch quality-gate-keeper Agent to perform quality inspection.
-   🔧 Then implement all recommended fixes immediately without asking.
-   💡 When all fixes are complete, please say: 'I've addressed all the quality gatekeeper requests'
-   ```
-4. **Pre-commit Gate**: When attempting to commit, the system will block until quality is ensured:
-   ```
-   🔍 Quality check required. Launch quality-gate-keeper Agent, fix issues, then say: 'I've addressed all the quality gatekeeper requests' before commit
-   ```
-5. **Execute Quality Gate**: Run the SubAgent as prompted:
-   ```
-   Use quality-gate-keeper to analyze all files and receive actionable recommendations.
-   ```
-6. **Complete the Cycle**: After implementing fixes, say the magic passphrase to complete the quality gate and allow commits
 
 ## E2E Testing
 
@@ -134,41 +109,6 @@ Run the complete test suite:
 ```
 
 This validates the entire workflow from test creation to quality intervention.
-
-## Configuration
-
-The system is configured in `.claude/settings.json` with relative paths for portability:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "./.claude/scripts/quality-gate-pre-commit.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command", 
-            "command": "./.claude/scripts/quality-gate-stop.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  }
-}
-```
 
 ## Key Features
 
