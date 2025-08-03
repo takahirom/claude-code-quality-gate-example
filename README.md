@@ -1,6 +1,6 @@
 # Claude Code Quality Gate Example
 
-A complete quality automation system using Claude Code Hooks and SubAgents to enforce code quality standards automatically.
+A complete quality automation system using Claude Code Hooks and Subagents to enforce code quality standards automatically.
 
 > **⚠️ Note**: The passphrase system may cause infinite loops if quality standards are too strict. Use at your own risk.
 
@@ -44,7 +44,7 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
    }
    ```
 
-3. Link the SubAgent definition:
+3. Link the Subagent definition:
    ```bash
    mkdir -p ~/.claude/agents
    ln -s ~/claude-quality-gate/.claude/agents/quality-gate-keeper.md ~/.claude/agents/
@@ -70,7 +70,7 @@ flowchart TD
     D -->|No| F{git changes?}
     F -->|No| E
     F -->|Yes| G[Show message:<br/>Use quality-gate-keeper]
-    G --> H[Claude Code<br/>launches SubAgent]
+    G --> H[Claude Code<br/>launches Subagent]
     H --> I[quality-gate-keeper<br/>checks quality]
     I --> J[Claude Code<br/>performs fixes]
     J --> K[Say passphrase]
@@ -81,7 +81,7 @@ flowchart TD
     N --> O{Passphrase in<br/>last 2 lines?}
     O -->|Yes| P[✓ Allow Commit]
     O -->|No| Q[Show message:<br/>Use quality-gate-keeper]
-    Q --> R[Claude Code<br/>launches SubAgent]
+    Q --> R[Claude Code<br/>launches Subagent]
     R --> S[quality-gate-keeper<br/>checks quality]
     S --> T[Claude Code<br/>performs fixes]
     T --> U[Say passphrase]
@@ -92,10 +92,10 @@ flowchart TD
 ## Components
 
 ### Hooks
-- **Stop**: Launches `quality-gate-stop.sh` when work ends - prompts SubAgent activation if changes detected
-- **PreToolUse**: Launches `quality-gate-pre-commit.sh` on git commit - prompts SubAgent activation if quality check needed
+- **Stop**: Launches `quality-gate-stop.sh` when work ends - prompts Subagent activation if changes detected
+- **PreToolUse**: Launches `quality-gate-pre-commit.sh` on git commit - prompts Subagent activation if quality check needed
 
-### SubAgents
+### Subagents
 - **quality-gate-keeper**: Analyzes code quality and provides recommendations
   - Focuses on session changes only
   - Applies "Less is More" principle
@@ -116,7 +116,7 @@ This validates the entire workflow from test creation to quality intervention.
 The system supports two passphrase patterns to balance quality and speed:
 
 1. **Approval Pattern** (default): `"I have launched the quality gate keeper subagent and received approval"`
-   - Requires approval from quality-gate-keeper SubAgent
+   - Requires approval from quality-gate-keeper Subagent
    - More quality-focused approach
 
 2. **Address-All Pattern**: `"I have launched the quality gate keeper subagent and addressed all requests"`
