@@ -4,6 +4,62 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
 
 > **⚠️ Disclaimer**: This system is provided as-is for educational and experimental purposes. Use at your own risk. The authors are not responsible for any issues, data loss, or unexpected behavior that may occur from using this automation system. Please test thoroughly in a safe environment before using in production.
 
+## How to Install (Global Settings)
+
+1. Copy the scripts to a permanent location:
+   ```bash
+   mkdir -p ~/claude-quality-gate
+   cp -r .claude/scripts ~/claude-quality-gate/
+   chmod +x ~/claude-quality-gate/scripts/*.sh
+   ```
+
+2. Add to your global Claude Code settings (`~/.claude/settings.json`):
+   ```json
+   {
+     "hooks": {
+       "PreToolUse": [
+         {
+           "matcher": "Bash",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "~/claude-quality-gate/scripts/quality-gate-pre-commit.sh",
+               "timeout": 30
+             }
+           ]
+         }
+       ],
+       "Stop": [
+         {
+           "matcher": "*",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "~/claude-quality-gate/scripts/quality-gate-stop.sh",
+               "timeout": 30
+             }
+           ]
+         }
+       ]
+     }
+   }
+   ```
+
+3. Copy the SubAgent definition:
+   ```bash
+   mkdir -p ~/.claude/agents
+   cp .claude/agents/quality-gate-keeper.md ~/.claude/agents/
+   ```
+
+4. Ensure dependencies are installed:
+   ```bash
+   # macOS
+   brew install jq
+   
+   # Ubuntu/Debian
+   sudo apt-get install jq
+   ```
+
 ## System Architecture
 
 ```mermaid
@@ -81,7 +137,7 @@ This validates the entire workflow from test creation to quality intervention.
 
 ## Configuration
 
-The system is configured in `test/.claude/settings.json` with relative paths for portability:
+The system is configured in `.claude/settings.json` with relative paths for portability:
 
 ```json
 {

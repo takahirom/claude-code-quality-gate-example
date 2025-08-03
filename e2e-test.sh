@@ -20,7 +20,14 @@ cd "$TEST_DIR" || exit 1
 echo "Step 1: Cleanup previous test"
 rm -f Test.js /tmp/claude_test_session_state* /tmp/intervention_in_progress
 rm -f /tmp/claude_work_completion.log /tmp/claude_session_tracker.log
+rm -rf .claude  # Remove previous test .claude directory
 echo "✓ Cleanup complete"
+echo ""
+
+# Step 1.5: Copy .claude directory for test
+echo "Step 1.5: Setting up test .claude directory"
+cp -r ../.claude .
+echo "✓ .claude directory copied for test"
 echo ""
 
 # Step 2: Baseline measurement
