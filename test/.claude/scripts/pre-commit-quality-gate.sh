@@ -1,10 +1,13 @@
 #!/bin/bash
+# Source common configuration
+source "$(dirname "$0")/common-config.sh"
+check_dependencies
 
 input_json=$(cat)
 command=$(echo "$input_json" | jq -r '.tool_input.command')
 
 if [[ "$command" =~ git[[:space:]]+commit ]]; then
-    PASSPHRASE="I've addressed all the quality gatekeeper requests"
+    # PASSPHRASE defined at top of file
     
     # Check if Claude said the magic passphrase in recent transcript
     transcript_path=$(echo "$input_json" | jq -r '.transcript_path')
@@ -16,7 +19,7 @@ if [[ "$command" =~ git[[:space:]]+commit ]]; then
         fi
     fi
     
-    echo "🔍 Quality check required. Launch quality-gate-keeper Agent, fix issues, then say: '$PASSPHRASE' before commit" >&2
+    echo "🔍 Quality check required. Use Task tool with subagent_type='quality-gate-keeper', fix issues, then say: '$PASSPHRASE'" >&2
     exit 2
 fi
 

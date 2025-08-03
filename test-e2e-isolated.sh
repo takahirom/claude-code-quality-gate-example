@@ -1,40 +1,43 @@
 #!/bin/bash
 
+# Check dependencies
+for cmd in claude node jq git; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "❌ Required dependency '$cmd' not found" >&2
+        exit 1
+    fi
+done
+
 echo "=== Isolated E2E Test for Claude Code Work Completion Detection ==="
 echo "Date: $(date)"
 echo ""
 
 # Setup
 TEST_DIR="$(cd "$(dirname "$0")/test" && pwd)"
-cd "$TEST_DIR"
+cd "$TEST_DIR" || exit 1
 
-# Step 1: Doctor check with isolated settings
-echo "Step 1: Doctor check with isolated settings"
-timeout 5 claude "/doctor" > /tmp/e2e-doctor-check.txt 2>&1
-echo "✓ Doctor result:"
-cat /tmp/e2e-doctor-check.txt
-echo ""
-
-# Step 2: Cleanup
-echo "Step 2: Cleanup previous test"
+# Step 1: Cleanup
+echo "Step 1: Cleanup previous test"
 rm -f Test.js /tmp/claude_test_session_state* /tmp/intervention_in_progress
 rm -f /tmp/claude_work_completion.log /tmp/claude_session_tracker.log
 echo "✓ Cleanup complete"
 echo ""
 
-# Step 3: Baseline measurement
-echo "Step 3: Baseline measurement"
+# Step 2: Baseline measurement
+echo "Step 2: Baseline measurement"
 echo "Test files in test directory:"
 find . -name "*.test.*" -o -name "*.spec.*" -o -name "Test.js" | wc -l
 echo ""
 
-# Step 4: The critical test - single Claude command
-echo "Step 4: Critical test - Single Claude command execution"
+# Step 3: The critical test - single Claude command
+echo "Step 3: Critical test - Single Claude command execution"
 echo "Command: 'I am building a Claude Code Hook system with Gate Keeper functionality. Please create Test.js that calls Calculator.add() but does not execute any assertions. Expected behavior: Hook will tell you to call a SubAgent. (Do not call SubAgent yourself until told to do so) When prompted, follow the SubAgent's instructions to add assertions. Only modify Test.js, nothing else.'"
 echo ""
 
 # Execute the main test
-timeout 300 echo "I am building a Claude Code Hook system with Gate Keeper functionality. Please create Test.js that calls Calculator.add() but does not execute any assertions. Expected behavior: Hook will tell you to call a SubAgent. (Do not call SubAgent yourself until told to do so) When prompted, follow the SubAgent's instructions to add assertions. Only modify Test.js, nothing else.\n" | claude -p
+timeout 300 claude -p << 'EOF'
+I am building a Claude Code Hook system with Gate Keeper functionality. Please create Test.js that calls Calculator.add() but does not execute any assertions. Expected behavior: Hook will tell you to call a SubAgent. (Do not call SubAgent yourself until told to do so) When prompted, follow the SubAgent's instructions to add assertions. Only modify Test.js, nothing else.
+EOF
 
 echo "✓ Claude execution completed"
 echo ""
@@ -50,6 +53,40 @@ else
     echo "❌ NO"
     echo "Debugging - Current directory contents:"
     ls -la
+    exit 1
+fi
+echo ""
+
+# Step 5.5: Test execution verification
+echo "Step 5.5: Test execution verification"
+if [[ -f "Test.js" ]]; then
+    echo "Executing Test.js:"
+    node Test.js > /tmp/test-execution-output.txt 2>&1
+    test_exit_code=$?
+    cat /tmp/test-execution-output.txt
+    echo "Test exit code: $test_exit_code"
+    
+    # Validate test execution success
+    if [[ $test_exit_code -eq 0 ]]; then
+        echo "✅ Test executed successfully"
+        
+        # Verify test actually contains assertions (anti-cheat)
+        # Check test output for actual test results, not just patterns
+        if grep -q "✅.*test.*passed\|✅.*Test passed\|🎉.*tests.*passed" /tmp/test-execution-output.txt; then
+            echo "✅ Test contains real assertions and passed verification"
+        else
+            echo "❌ Test lacks proper assertions or failed verification"
+            echo "Test output analysis:"
+            head -5 /tmp/test-execution-output.txt
+            exit 1
+        fi
+    else
+        echo "❌ Test execution failed with exit code: $test_exit_code"
+        exit 1
+    fi
+else
+    echo "❌ Cannot execute test - file missing"
+    exit 1
 fi
 echo ""
 
@@ -60,6 +97,7 @@ if [[ -f "/tmp/claude_quality_gate.log" ]]; then
     cat /tmp/claude_quality_gate.log
 else
     echo "❌ No quality gate log found"
+    exit 1
 fi
 echo ""
 
@@ -80,22 +118,22 @@ if [[ -f "Test.js" ]]; then
     console_count=$(grep -c "console\.log" Test.js 2>/dev/null)
     assert_count=$(grep -c "expect(\|assert(\|should\." Test.js 2>/dev/null)
     
-    # Ensure numeric values
-    console_count=${console_count:-0}
-    assert_count=${assert_count:-0}
-    
     echo "Console.log count: $console_count"
     echo "Assertion count: $assert_count"
     
-    if [[ $console_count -gt 0 && $assert_count -eq 0 ]]; then
-        echo "🚨 DETECTED: Console-only test (should trigger intervention)"
-    elif [[ $assert_count -gt 0 ]]; then
+    if [[ $assert_count -gt 0 ]]; then
         echo "✅ SUCCESS: Assertions found (intervention worked!)"
+        if [[ $console_count -gt 0 ]]; then
+            echo "ℹ️ INFO: Test also contains console.log statements"
+        fi
+    elif [[ $console_count -gt 0 ]]; then
+        echo "🚨 DETECTED: Console-only test (should trigger intervention)"
     else
         echo "❓ UNCLEAR: No console.log or assertions found"
     fi
 else
     echo "❌ FAILED: No Test.js file created"
+    exit 1
 fi
 
 echo ""
@@ -110,8 +148,9 @@ echo "3. Quality intervention message appears"
 echo "4. (SubAgent would execute in real scenario)"
 echo ""
 
-if [[ -f "Test.js" ]] && [[ -f "/tmp/claude_quality_gate.log" ]]; then
-    echo "🎉 E2E TEST SUCCESSFUL: Complete workflow detected!"
+if [[ -f "Test.js" ]] && [[ -f "/tmp/claude_quality_gate.log" ]] && [[ -f "/tmp/test-execution-output.txt" ]]; then
+    echo "🎉 E2E TEST SUCCESSFUL: Complete workflow with test execution detected!"
 else
-    echo "⚠️ E2E TEST INCOMPLETE: Check logs for issues"
+    echo "⚠️ E2E TEST INCOMPLETE: Missing test execution verification"
+    exit 1
 fi
