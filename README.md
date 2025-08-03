@@ -15,19 +15,19 @@ A complete quality automation system using Claude Code Hooks and SubAgents to en
 
 ```mermaid
 flowchart TD
-    A[Work] --> B[Stop Hook]
-    A --> C[git commit] 
-    B --> D{Quality OK?}
-    C --> E[Pre-commit Hook]
-    E --> F{Quality OK?}
-    D -->|No| G[quality-gate-keeper]
-    F -->|No| G
-    G --> H[Fix Issues]
-    H --> I[Say passphrase]
-    I --> D
-    I --> F
-    D -->|Yes| J[✓ Complete]
-    F -->|Yes| K[✓ Commit]
+    A[Stop Hook] --> B{Quality OK?}
+    B -->|No| C[quality-gate-keeper]
+    C --> D[Fix Issues]
+    D --> E[Say passphrase]
+    E --> B
+    B -->|Yes| F[✓ Session Complete]
+    
+    G[Pre-commit Hook] --> H{Quality OK?}
+    H -->|No| I[quality-gate-keeper]
+    I --> J[Fix Issues]
+    J --> K[Say passphrase]
+    K --> H
+    H -->|Yes| L[✓ Commit]
 ```
 
 ## Components
