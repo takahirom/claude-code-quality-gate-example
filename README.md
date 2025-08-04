@@ -2,7 +2,9 @@
 
 A complete quality automation system using Claude Code Hooks and Subagents to enforce code quality standards automatically.
 
-> **⚠️ Note**: The passphrase system may cause infinite loops if quality standards are too strict. Use at your own risk.
+**In simple terms**: A system that uses Hooks to repeatedly launch quality-gate-keeper Subagent and perform fixes until it says `Final Result: ✅ APPROVED`.
+
+> **⚠️ Note**: This system may cause infinite loops if quality standards are too strict. Adjust quality-gate-keeper.md or modify scripts if needed.
 
 ## How to Install (Global Settings)
 
@@ -65,38 +67,37 @@ A complete quality automation system using Claude Code Hooks and Subagents to en
 flowchart TD
     A[Claude Code<br/>ends work] --> B[Stop Hook] 
     B --> C[quality-gate-stop.sh]
-    C --> D{Passphrase in<br/>last line?}
-    D -->|Yes| E[✓ Session Complete]
-    D -->|No| F{git changes?}
+    C --> D{Final Result<br/>in history?}
+    D -->|APPROVED| E[✓ Session Complete]
+    D -->|No/REJECTED| F{git changes?}
     F -->|No| E
     F -->|Yes| G[Show message:<br/>Use quality-gate-keeper]
     G --> H[Claude Code<br/>launches Subagent]
-    H --> I[quality-gate-keeper<br/>checks quality]
+    H --> I[quality-gate-keeper checks quality and<br/>outputs Final Result: APPROVED/REJECTED]
     I --> J[Claude Code<br/>performs fixes]
-    J --> K[Say passphrase]
-    K --> B
+    J --> B
     
     L[Claude Code<br/>runs git commit] --> M[PreToolUse Hook] 
     M --> N[quality-gate-pre-commit.sh]
-    N --> O{Passphrase in<br/>last 2 lines?}
-    O -->|Yes| P[✓ Allow Commit]
-    O -->|No| Q[Show message:<br/>Use quality-gate-keeper]
+    N --> O{Latest<br/>Final Result?}
+    O -->|APPROVED| P[✓ Allow Commit]
+    O -->|REJECTED/No Result| Q[❌ Commit Blocked<br/>Use quality-gate-keeper]
     Q --> R[Claude Code<br/>launches Subagent]
-    R --> S[quality-gate-keeper<br/>checks quality]
+    R --> S[quality-gate-keeper checks quality and<br/>outputs Final Result: APPROVED/REJECTED]
     S --> T[Claude Code<br/>performs fixes]
-    T --> U[Say passphrase]
-    U --> V[Retry git commit]
-    V --> M
+    T --> U[Retry git commit]
+    U --> M
 ```
 
 ## Components
 
 ### Hooks
-- **Stop**: Launches `quality-gate-stop.sh` when work ends - prompts Subagent activation if changes detected
-- **PreToolUse**: Launches `quality-gate-pre-commit.sh` on git commit - prompts Subagent activation if quality check needed
+- **Stop**: Launches `quality-gate-stop.sh` when work ends - checks transcript history for Final Result
+- **PreToolUse**: Launches `quality-gate-pre-commit.sh` on git commit - blocks commit unless APPROVED
 
 ### Subagents
-- **quality-gate-keeper**: Analyzes code quality and provides recommendations
+- **quality-gate-keeper**: Analyzes code quality and outputs clear verdicts
+  - Must end with `Final Result: ✅ APPROVED` or `Final Result: ❌ REJECTED`
   - Focuses on session changes only
   - Applies "Less is More" principle
   - Detects testing cheats and shortcuts
@@ -112,22 +113,17 @@ This validates the entire workflow from test creation to quality intervention.
 
 ## Key Features
 
-### Magic Passphrase System
-The system supports two passphrase patterns to balance quality and speed:
+### Direct Verdict System
+The system uses quality-gate-keeper's direct output for decision making:
 
-1. **Approval Pattern** (default): `"I have launched the quality gate keeper subagent and received approval"`
-   - Requires approval from quality-gate-keeper Subagent
-   - More quality-focused approach
-
-2. **Address-All Pattern**: `"I have launched the quality gate keeper subagent and addressed all requests"`
-   - Proceeds once fixes are completed
-   - More speed-focused approach
-
-Configure the passphrase in `common-config.sh` to switch between patterns.
+1. **Direct Result Checking**: Parses transcript for `Final Result: ✅ APPROVED` or `Final Result: ❌ REJECTED`
+2. **Stale Approval Detection**: Automatically invalidates old approvals after file edits
 
 
 ## Important Notes
 
-- **Experimental System**: Test in a safe environment first
+- **REJECTED Handling**: Unlike the old passphrase system, you must actually fix issues - no shortcuts allowed
+- **Infinite Loop Risk**: Quality standards that are too strict may cause loops. Adjust quality-gate-keeper.md or scripts as needed
+- **Experimental System**: Test in a safe environment first  
 - **Use at Your Own Risk**: No warranty or support provided
 

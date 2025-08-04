@@ -7,21 +7,27 @@ input_json=$(cat)
 command=$(echo "$input_json" | jq -r '.tool_input.command')
 
 if [[ "$command" =~ git[[:space:]]+commit ]]; then
-    # PASSPHRASE defined at top of file
-    
-    # Check if Claude said the magic passphrase in recent transcript
     transcript_path=$(echo "$input_json" | jq -r '.transcript_path')
-    if [[ -f "$transcript_path" ]]; then
-        # Check the last 2 lines - the last line will be the commit command, so passphrase is in the 2nd to last
-        # Note: Using grep -q instead of grep -qw because -w doesn't work correctly with JSON content
-        if tail -n 2 "$transcript_path" | grep -q "$PASSPHRASE"; then
-            echo "Magic passphrase detected - allowing commit" >&2
-            exit 0
-        fi
-    fi
     
-    echo "🔍 Quality check required. Use Task tool with subagent_type='quality-gate-keeper', fix issues, then say: '$PASSPHRASE' and retry commit" >&2
-    exit 2
+    # Use common function to get quality result
+    get_quality_result "$transcript_path"
+    result_status=$?
+    
+    case $result_status in
+        0)  # APPROVED
+            echo "✅ Quality gate approved - allowing commit" >&2
+            exit 0
+            ;;
+        1)  # REJECTED
+            echo "❌ Quality gate REJECTED - commit blocked due to critical issues" >&2
+            echo "Use Task tool with subagent_type='quality-gate-keeper' to fix the issues and get approval" >&2
+            exit 2
+            ;;
+        2)  # No verdict found
+            echo "🔍 Quality check required. Use Task tool with subagent_type='quality-gate-keeper' to perform quality inspection" >&2
+            exit 2
+            ;;
+    esac
 fi
 
 exit 0
