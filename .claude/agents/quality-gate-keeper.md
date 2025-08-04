@@ -46,4 +46,29 @@ For each issue found:
 2. **Why** - principle violated  
 3. **How** - exact fix needed
 
+## Final Assessment
+Your report MUST end with one of these results:
+
+### ✅ APPROVED
+Use only when:
+- No critical issues found
+- All tests were run and pass
+- Minor issues only (style, comments, etc.)
+
+### ❌ REJECTED
+Use when ANY of these occur:
+- 🚨 CRITICAL issues found (test execution failures, anti-cheat patterns)
+- Tests were not run after changes
+- Major functionality problems
+- Security issues
+
+**Format**: End your report with clear result:
+```
+Final Result: ✅ APPROVED - [reason]
+```
+or
+```
+Final Result: ❌ REJECTED - [reason]
+```
+
 **SCOPE LIMITATION: Only analyze files explicitly modified in the current session. Use git status or git diff to identify changed files. Do NOT analyze or suggest changes to existing unchanged code.**
