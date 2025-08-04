@@ -20,7 +20,6 @@ jobs:
     - name: Make scripts executable
       run: |
         chmod +x .claude/scripts/*.sh
-        chmod +x test-*.sh
         chmod +x tests/*.sh
     
     - name: Test common-config.sh syntax
