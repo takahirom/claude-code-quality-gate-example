@@ -34,6 +34,9 @@ jobs:
     - name: Run comprehensive function tests
       run: ./tests/test-functions.sh
     
+    - name: Run quality gate integration tests
+      run: ./tests/test-quality-gate-integration.sh
+      if: always()
     
     - name: Run edge case tests
       run: ./tests/test-edge-cases.sh
