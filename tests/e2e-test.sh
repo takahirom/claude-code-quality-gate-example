@@ -25,8 +25,14 @@ echo "✓ Cleanup complete"
 echo ""
 
 # Step 1.5: Copy .claude directory for test
-echo "Step 1.5: Setting up test .claude directory"  
-cp -r ../../.claude .
+echo "Step 1.5: Setting up test .claude directory"
+# Fail fast if the source directory is missing
+CLAUDE_SRC="../../.claude"
+if [[ ! -d "$CLAUDE_SRC" ]]; then
+    echo "❌ Source $CLAUDE_SRC not found" >&2
+    exit 1
+fi
+cp -r "$CLAUDE_SRC" .
 echo "✓ .claude directory copied for test"
 echo ""
 
@@ -174,6 +180,13 @@ if [[ -f "Test.js" ]]; then
     echo "✓ Test.js cleaned up"
 else
     echo "No Test.js to clean up"
+fi
+
+# Remove the copied hooks directory as well
+if [[ -d ".claude" ]]; then
+    echo "Removing copied .claude directory..."
+    rm -rf .claude
+    echo "✓ .claude directory cleaned up"
 fi
 
 exit $test_result
