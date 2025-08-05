@@ -1,5 +1,5 @@
 #!/bin/bash
-# Common test data - Production-like JSONL line definitions (Refactored)
+# Common test data - Production-like JSONL line definitions
 
 # Common fields
 SESSION_ID="test-session-12345"
