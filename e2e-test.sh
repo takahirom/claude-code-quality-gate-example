@@ -13,7 +13,7 @@ echo "Date: $(date)"
 echo ""
 
 # Setup
-TEST_DIR="$(cd "$(dirname "$0")/test" && pwd)"
+TEST_DIR="$(cd "$(dirname "$0")/e2e-test-sandbox" && pwd)"
 cd "$TEST_DIR" || exit 1
 
 # Step 1: Cleanup

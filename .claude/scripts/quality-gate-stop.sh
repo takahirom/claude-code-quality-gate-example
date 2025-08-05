@@ -20,6 +20,13 @@ echo "Input JSON: $input_json" >> "$LOG_FILE"
 # Check if quality-gate-keeper has provided a result
 transcript_path=$(echo "$input_json" | jq -r '.transcript_path')
 if [[ -f "$transcript_path" ]]; then
+    # Check retry limit first
+    if count_attempts_since_last_reset_point "$transcript_path" 10; then
+        echo "Maximum attempts reached after last reset point - auto-approving" >> "$LOG_FILE"
+        echo "🔄 Quality gate auto-approved after 10 attempts. Consider reviewing the quality standards." >&2
+        exit 0
+    fi
+    
     # Use common function to get quality result
     get_quality_result "$transcript_path"
     result_status=$?

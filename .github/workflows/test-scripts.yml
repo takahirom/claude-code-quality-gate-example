@@ -1,0 +1,48 @@
+name: Test Scripts
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test-scripts:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+    
+    - name: Make scripts executable
+      run: |
+        chmod +x .claude/scripts/*.sh
+        chmod +x tests/*.sh
+    
+    - name: Test common-config.sh syntax
+      run: bash -n .claude/scripts/common-config.sh
+    
+    - name: Test quality-gate-stop.sh syntax
+      run: bash -n .claude/scripts/quality-gate-stop.sh
+    
+    - name: Test quality-gate-pre-commit.sh syntax
+      run: bash -n .claude/scripts/quality-gate-pre-commit.sh
+    
+    - name: Run comprehensive function tests
+      run: ./tests/test-functions.sh
+    
+    
+    - name: Run edge case tests
+      run: ./tests/test-edge-cases.sh
+      if: always()
+    
+    - name: Test script dependencies
+      run: |
+        echo "Checking script dependencies..."
+        for script in .claude/scripts/*.sh; do
+          echo "Checking $script..."
+          grep -E "command -v|which" "$script" | grep -oE "(jq|git|rg|gh)" | sort -u || true
+        done
