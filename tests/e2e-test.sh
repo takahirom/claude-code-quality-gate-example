@@ -25,8 +25,8 @@ echo "✓ Cleanup complete"
 echo ""
 
 # Step 1.5: Copy .claude directory for test
-echo "Step 1.5: Setting up test .claude directory"
-cp -r ../.claude .
+echo "Step 1.5: Setting up test .claude directory"  
+cp -r ../../.claude .
 echo "✓ .claude directory copied for test"
 echo ""
 
@@ -159,7 +159,21 @@ echo ""
 
 if [[ -f "Test.js" ]] && [[ -f "/tmp/claude_quality_gate.log" ]] && [[ -f "/tmp/test-execution-output.txt" ]]; then
     echo "🎉 E2E TEST SUCCESSFUL: Complete workflow with test execution detected!"
+    test_result=0
 else
     echo "⚠️ E2E TEST INCOMPLETE: Missing test execution verification"
-    exit 1
+    test_result=1
 fi
+
+# Finally: Cleanup generated Test.js to avoid git tracking issues
+echo ""
+echo "=== Cleanup ==="
+if [[ -f "Test.js" ]]; then
+    echo "Removing generated Test.js file..."
+    rm -f Test.js
+    echo "✓ Test.js cleaned up"
+else
+    echo "No Test.js to clean up"
+fi
+
+exit $test_result
