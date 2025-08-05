@@ -102,11 +102,26 @@ flowchart TD
   - Applies "Less is More" principle
   - Detects testing cheats and shortcuts
 
-## E2E Testing
+## Testing
 
+### E2E Testing
 Run the complete test suite:
 ```bash
-./e2e-test.sh
+./tests/e2e-test.sh
+```
+
+### Integration Testing
+Run quality gate integration tests:
+```bash
+./tests/test-quality-gate-integration.sh
+```
+
+### All Tests
+Run all tests (used in CI):
+```bash
+./tests/test-functions.sh
+./tests/test-quality-gate-integration.sh
+./tests/test-edge-cases.sh
 ```
 
 This validates the entire workflow from test creation to quality intervention.
