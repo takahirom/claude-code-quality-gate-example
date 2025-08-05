@@ -32,7 +32,7 @@ get_quality_result() {
     # This prevents interference from ongoing Bash commands containing "Final Result:"
     local result_info=$(tac "$transcript_path" | nl -nrn | grep "Final Result:" | while read -r line; do
         # Only check jq for lines that contain Final Result
-        if echo "$line" | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
+        if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
             echo "$line"
             break
         fi
@@ -44,9 +44,9 @@ get_quality_result() {
         last_result_line=$((total_lines - reverse_line_num + 1))
         
         # Determine result type and extract content
-        if echo "$line" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
+        if echo "$line" | cut -f2- | jq -e '.isSidechain == true' >/dev/null 2>&1; then
             last_result=$(extract_message_content "$line")
-        elif echo "$line" | jq -e '.toolUseResult | type == "string"' >/dev/null 2>&1; then
+        elif echo "$line" | cut -f2- | jq -e '.toolUseResult | type == "string"' >/dev/null 2>&1; then
             local tool_result_content=$(echo "$line" | jq -r '.toolUseResult' 2>/dev/null)
             if [[ -n "$tool_result_content" ]] && echo "$tool_result_content" | grep -q "Final Result:"; then
                 last_result="$tool_result_content"
@@ -96,7 +96,7 @@ count_attempts_since_last_reset_point() {
     # Find last APPROVED result line number using reverse search
     local last_approved_line=0
     local approved_result=$(tac "$transcript_path" | nl -nrn | grep "Final Result: ✅ APPROVED" | while read -r line; do
-        if echo "$line" | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
+        if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
             echo "$line" | cut -f1  # Return line number
             break
         fi
