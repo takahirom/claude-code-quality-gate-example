@@ -2,7 +2,27 @@
 # Debug script to check actual transcript format
 
 # Use provided path or default
-transcript_path="${1:-~/.claude/projects/*/hook-experiment/*.jsonl}"
+if [[ -n "$1" ]]; then
+    transcript_path="$1"
+else
+    # shellcheck disable=SC2086  # intentional glob expansion
+    transcript_files=(~/.claude/projects/*/hook-experiment/*.jsonl)
+    
+    # Check if glob matched any files
+    if [[ ${#transcript_files[@]} -eq 1 && ! -f "${transcript_files[0]}" ]]; then
+        echo "Usage: $0 [transcript_path]"
+        echo "Error: No transcript files found matching pattern"
+        exit 1
+    fi
+    
+    # If multiple files found, use the newest one
+    if [[ ${#transcript_files[@]} -gt 1 ]]; then
+        transcript_path=$(ls -t "${transcript_files[@]}" | head -1)
+        echo "Multiple transcript files found, using newest: $transcript_path"
+    else
+        transcript_path="${transcript_files[0]}"
+    fi
+fi
 
 if [[ ! -f "$transcript_path" ]]; then
     echo "Usage: $0 [transcript_path]"
