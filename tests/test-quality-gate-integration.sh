@@ -1,4 +1,6 @@
 #!/bin/bash
+# Fail fast and surface unexpected issues (but allow controlled non-zero exits)
+set -uo pipefail
 # Integration test for quality gate scripts using real transcript files
 
 echo "=== Quality Gate Integration Test ==="
@@ -42,7 +44,8 @@ run_test() {
     
     # Check for unexpected errors in stderr
     if [[ -n "$stderr_output" ]]; then
-        if ! echo "$stderr_output" | grep -qE "(Quality gate|STOP:|Action required|blocking session)" && [[ $expected_exit_code -ne 0 ]]; then
+        if [[ $expected_exit_code -ne 0 ]] && ! echo "$stderr_output" | \
+           grep -qE '(Quality gate|STOP:|Action required|blocking session)'; then
             echo "❌ $test_name: UNEXPECTED ERROR in stderr: $stderr_output"
             ((FAILED_TESTS++))
             return
