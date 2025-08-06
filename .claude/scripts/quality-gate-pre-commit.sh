@@ -20,7 +20,8 @@ if [[ "$command" =~ git[[:space:]]+commit ]]; then
             ;;
         1)  # REJECTED
             echo "❌ Quality gate REJECTED - commit blocked due to critical issues" >&2
-            echo "Please use the Task tool with subagent_type='quality-gate-keeper' to address and fix the issues" >&2
+            echo "Step 1: Use Task tool with subagent_type='quality-gate-keeper' to review and identify issues" >&2
+            echo "Step 2: Fix any issues identified by the quality gate keeper" >&2
             exit 2
             ;;
         2)  # No verdict found
