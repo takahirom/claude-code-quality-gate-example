@@ -201,6 +201,30 @@ test_precommit_double_dash_option() {
     run_test "pre-commit with --no-verify option" "0" "$exit_code" "$stderr_output"
 }
 
+# Test that non-git-commit commands are not matched
+test_precommit_false_positives() {
+    echo "quality-gate-pre-commit.sh false positive tests"
+    create_approved_transcript
+    
+    # Test 1: mygit commit should NOT match
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'","tool_input":{"command":"mygit commit -m \"test\""},"files_changed":["test.js"]}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-pre-commit.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    run_test "mygit commit should not trigger" "0" "$exit_code" "$stderr_output"
+    
+    # Test 2: echo && git commit SHOULD match
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'","tool_input":{"command":"echo foo && git commit -m \"test\""},"files_changed":["test.js"]}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-pre-commit.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    run_test "echo && git commit should trigger" "0" "$exit_code" "$stderr_output"
+    
+    # Test 3: git status should NOT match
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'","tool_input":{"command":"git status"},"files_changed":["test.js"]}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-pre-commit.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    run_test "git status should not trigger" "0" "$exit_code" "$stderr_output"
+}
+
 # Execute all tests
 echo "Starting integration tests..."
 echo
@@ -213,6 +237,7 @@ test_precommit_rejected
 test_nl_jq_bug
 test_precommit_git_c_option
 test_precommit_double_dash_option
+test_precommit_false_positives
 
 echo
 echo "=== Test Summary ==="

@@ -6,7 +6,7 @@ check_dependencies
 input_json=$(cat)
 command=$(echo "$input_json" | jq -r '.tool_input.command')
 
-if [[ "$command" =~ git([[:space:]]+(-[^[:space:]]+|--[^[:space:]]+))*[[:space:]]+commit ]]; then
+if [[ "$command" =~ (^|[[:space:];&|])git[[:space:]]+.*commit([[:space:]]|$) ]]; then
     transcript_path=$(echo "$input_json" | jq -r '.transcript_path')
     
     # Use common function to get quality result
