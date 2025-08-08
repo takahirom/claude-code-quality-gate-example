@@ -87,9 +87,9 @@ create_no_result_transcript() {
     get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
 }
 
-# Test 1: quality-gate-stop.sh with APPROVED result
+# quality-gate-stop.sh with APPROVED result
 test_stop_approved() {
-    echo "Test 1: quality-gate-stop.sh with APPROVED result"
+    echo "quality-gate-stop.sh with APPROVED result"
     create_approved_transcript
     
     # Create input JSON for the script
@@ -101,9 +101,9 @@ test_stop_approved() {
     run_test "stop script with APPROVED" "0" "$exit_code" "$stderr_output"
 }
 
-# Test 2: quality-gate-stop.sh with REJECTED result  
+# quality-gate-stop.sh with REJECTED result  
 test_stop_rejected() {
-    echo "Test 2: quality-gate-stop.sh with REJECTED result"
+    echo "quality-gate-stop.sh with REJECTED result"
     create_rejected_transcript
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
@@ -114,9 +114,9 @@ test_stop_rejected() {
     run_test "stop script with REJECTED" "2" "$exit_code" "$stderr_output"
 }
 
-# Test 3: quality-gate-stop.sh with no result
+# quality-gate-stop.sh with no result
 test_stop_no_result() {
-    echo "Test 3: quality-gate-stop.sh with no result"
+    echo "quality-gate-stop.sh with no result"
     create_no_result_transcript
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
@@ -127,9 +127,9 @@ test_stop_no_result() {
     run_test "stop script with no result" "2" "$exit_code" "$stderr_output"
 }
 
-# Test 4: quality-gate-pre-commit.sh with APPROVED result
+# quality-gate-pre-commit.sh with APPROVED result
 test_precommit_approved() {
-    echo "Test 4: quality-gate-pre-commit.sh with APPROVED result"
+    echo "quality-gate-pre-commit.sh with APPROVED result"
     create_approved_transcript
     
     # Create input JSON for pre-commit with git commit command
@@ -141,9 +141,9 @@ test_precommit_approved() {
     run_test "pre-commit with APPROVED" "0" "$exit_code" "$stderr_output"
 }
 
-# Test 5: quality-gate-pre-commit.sh with REJECTED result
+# quality-gate-pre-commit.sh with REJECTED result
 test_precommit_rejected() {
-    echo "Test 5: quality-gate-pre-commit.sh with REJECTED result"
+    echo "quality-gate-pre-commit.sh with REJECTED result"
     create_rejected_transcript
     
     # Create input JSON for pre-commit with git commit command
@@ -155,9 +155,9 @@ test_precommit_rejected() {
     run_test "pre-commit with REJECTED" "2" "$exit_code" "$stderr_output"
 }
 
-# Test 6: Bug reproduction - nl -nrn + jq issue
+# Bug reproduction - nl -nrn + jq issue
 test_nl_jq_bug() {
-    echo "Test 6: nl -nrn + jq bug reproduction"
+    echo "nl -nrn + jq bug reproduction"
     
     # Create transcript that would trigger the bug (toolUseResult format)
     echo "# Test transcript" > "$TEST_TRANSCRIPT"
@@ -173,6 +173,58 @@ test_nl_jq_bug() {
     run_test "nl -nrn bug fix verification" "0" "$exit_code" "$stderr_output"
 }
 
+# pre-commit with git -c option
+test_precommit_git_c_option() {
+    echo "quality-gate-pre-commit.sh with git -c option"
+    create_approved_transcript
+    
+    # Create input JSON for pre-commit with git -c command
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'","tool_input":{"command":"git -c user.name=\"Test User\" -c user.email=\"test@example.com\" commit -m \"test commit\""},"files_changed":["test.js"]}'
+    
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-pre-commit.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    
+    run_test "pre-commit with git -c option" "0" "$exit_code" "$stderr_output"
+}
+
+# pre-commit with git --no-verify option
+test_precommit_double_dash_option() {
+    echo "quality-gate-pre-commit.sh with git --no-verify option"
+    create_approved_transcript
+    
+    # Create input JSON for pre-commit with git --no-verify command
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'","tool_input":{"command":"git --no-verify commit -m \"test commit\""},"files_changed":["test.js"]}'
+    
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-pre-commit.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    
+    run_test "pre-commit with --no-verify option" "0" "$exit_code" "$stderr_output"
+}
+
+# Test that non-git-commit commands are not matched
+test_precommit_false_positives() {
+    echo "quality-gate-pre-commit.sh false positive tests"
+    create_approved_transcript
+    
+    # Test 1: mygit commit should NOT match
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'","tool_input":{"command":"mygit commit -m \"test\""},"files_changed":["test.js"]}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-pre-commit.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    run_test "mygit commit should not trigger" "0" "$exit_code" "$stderr_output"
+    
+    # Test 2: echo && git commit SHOULD match
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'","tool_input":{"command":"echo foo && git commit -m \"test\""},"files_changed":["test.js"]}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-pre-commit.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    run_test "echo && git commit should trigger" "0" "$exit_code" "$stderr_output"
+    
+    # Test 3: git status should NOT match
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'","tool_input":{"command":"git status"},"files_changed":["test.js"]}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-pre-commit.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    run_test "git status should not trigger" "0" "$exit_code" "$stderr_output"
+}
+
 # Execute all tests
 echo "Starting integration tests..."
 echo
@@ -183,6 +235,9 @@ test_stop_no_result
 test_precommit_approved
 test_precommit_rejected
 test_nl_jq_bug
+test_precommit_git_c_option
+test_precommit_double_dash_option
+test_precommit_false_positives
 
 echo
 echo "=== Test Summary ==="
