@@ -29,6 +29,10 @@ TEST_DIR="/tmp/quality-gate-test-$$-$(date +%s)"
 TEST_TRANSCRIPT="$TEST_DIR/test-transcript.jsonl"
 mkdir -p "$TEST_DIR"
 
+# Create a temporary file to ensure git detects changes
+TEST_DUMMY_FILE=".test-dummy-$$"
+touch "$TEST_DUMMY_FILE"
+
 # Test result tracking
 PASSED_TESTS=0
 FAILED_TESTS=0
@@ -255,5 +259,6 @@ fi
 
 # Cleanup
 rm -rf "$TEST_DIR"
+rm -f "$TEST_DUMMY_FILE"
 
 exit $exit_code
