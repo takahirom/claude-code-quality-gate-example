@@ -29,6 +29,13 @@ TEST_DIR="/tmp/quality-gate-test-$$-$(date +%s)"
 TEST_TRANSCRIPT="$TEST_DIR/test-transcript.jsonl"
 mkdir -p "$TEST_DIR"
 
+# Create a temporary file under the repo root to ensure git detects changes
+TEST_DUMMY_FILE="$PROJECT_ROOT/.test-dummy-$$"
+touch "$TEST_DUMMY_FILE"
+
+# Ensure cleanup even on early exits
+trap 'rm -f "$TEST_DUMMY_FILE"; rm -rf "$TEST_DIR"' EXIT
+
 # Test result tracking
 PASSED_TESTS=0
 FAILED_TESTS=0
@@ -253,7 +260,5 @@ else
     exit_code=1
 fi
 
-# Cleanup
-rm -rf "$TEST_DIR"
-
+# Cleanup is handled by trap
 exit $exit_code
