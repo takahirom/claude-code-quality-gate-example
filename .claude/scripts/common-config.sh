@@ -6,7 +6,8 @@
 QUALITY_GATE_RUN_OUTSIDE_GIT="${QUALITY_GATE_RUN_OUTSIDE_GIT:-false}"
 
 # Configurable pattern for file editing tools (for MCP compatibility)
-EDIT_TOOLS_PATTERN="${EDIT_TOOLS_PATTERN:-^(Write|Edit|MultiEdit|NotebookEdit)$}"
+# Support both old and new variable names for backward compatibility
+QUALITY_GATE_EDIT_TOOLS_PATTERN="${QUALITY_GATE_EDIT_TOOLS_PATTERN:-${EDIT_TOOLS_PATTERN:-^(Write|Edit|MultiEdit|NotebookEdit)$}}"
 
 # Check dependencies function
 check_dependencies() {
@@ -68,7 +69,7 @@ get_quality_result() {
         # Check for file edits after approval
         if tail -n +$((last_result_line + 1)) "$transcript_path" | \
            jq -r 'select(.message.content[]?.name) | .message.content[]?.name' 2>/dev/null | \
-           grep -qE "$EDIT_TOOLS_PATTERN"; then
+           grep -qE "$QUALITY_GATE_EDIT_TOOLS_PATTERN"; then
             return 2  # Stale approval
         fi
         return 0  # APPROVED
