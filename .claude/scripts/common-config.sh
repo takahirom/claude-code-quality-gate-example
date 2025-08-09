@@ -1,6 +1,10 @@
 #!/bin/bash
 # Common configuration for quality gate scripts
 
+# Run quality gate outside git repositories (default: false)
+# Set to true to enable quality gate checks in non-git directories
+QUALITY_GATE_RUN_OUTSIDE_GIT="${QUALITY_GATE_RUN_OUTSIDE_GIT:-false}"
+
 # Configurable pattern for file editing tools (for MCP compatibility)
 EDIT_TOOLS_PATTERN="${EDIT_TOOLS_PATTERN:-^(Write|Edit|MultiEdit|NotebookEdit)$}"
 
