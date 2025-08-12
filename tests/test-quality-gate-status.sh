@@ -1,7 +1,8 @@
 #!/bin/bash
 # Test for quality-gate-status.sh
 
-set -euo pipefail
+# Don't use set -e in test scripts as it prevents proper error reporting
+set -uo pipefail
 
 # Debug info for CI (only in CI environment)
 if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
@@ -57,14 +58,15 @@ test_status() {
     
     # Setup test environment
     rm -f test_transcript.jsonl
-    $setup_func
+    if ! $setup_func; then
+        echo -e "${RED}✗${NC} $test_name: Setup function failed"
+        return 0
+    fi
     
     # Run the script
     local result
-    set +e
     result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" 2>&1)
     local exit_code=$?
-    set -e
     
     if [[ $exit_code -ne 0 ]]; then
         echo -e "${RED}✗${NC} $test_name: Script failed with exit code $exit_code"
@@ -84,16 +86,25 @@ test_status() {
 
 # Setup functions for different states
 setup_approved() {
-    get_data "APPROVE_RESULT" > test_transcript.jsonl
+    if ! get_data "APPROVE_RESULT" > test_transcript.jsonl; then
+        echo "ERROR: Failed to get APPROVE_RESULT data"
+        return 1
+    fi
 }
 
 setup_rejected() {
-    get_data "REJECT_RESULT" > test_transcript.jsonl
+    if ! get_data "REJECT_RESULT" > test_transcript.jsonl; then
+        echo "ERROR: Failed to get REJECT_RESULT data"
+        return 1
+    fi
 }
 
 setup_pending() {
     # No Final Result in transcript (just regular assistant response)
-    get_data "ASSISTANT_RESPONSE" > test_transcript.jsonl
+    if ! get_data "ASSISTANT_RESPONSE" > test_transcript.jsonl; then
+        echo "ERROR: Failed to get ASSISTANT_RESPONSE data"
+        return 1
+    fi
 }
 
 setup_empty() {
@@ -108,7 +119,10 @@ setup_no_file() {
 
 setup_stale_approval() {
     # APPROVED but then file edited
-    get_data "APPROVE_RESULT" > test_transcript.jsonl
+    if ! get_data "APPROVE_RESULT" > test_transcript.jsonl; then
+        echo "ERROR: Failed to get APPROVE_RESULT data for stale approval"
+        return 1
+    fi
     echo '{"message":{"content":[{"name":"Edit"}]}}' >> test_transcript.jsonl
 }
 
@@ -129,12 +143,15 @@ setup_disabled_not_in_git() {
 
 setup_auto_approved() {
     # Create transcript with many stop hook attempts (>10)
-    {
+    if ! {
         get_data "USER_INPUT"
         for _ in {1..11}; do
             get_data "STOP_HOOK_FEEDBACK"
         done
-    } > test_transcript.jsonl
+    } > test_transcript.jsonl; then
+        echo "ERROR: Failed to create auto-approved transcript"
+        return 1
+    fi
 }
 
 # Helper functions for git repo tests
@@ -169,10 +186,8 @@ test_in_git_repo() {
     original_dir=$(pwd)
     local tmp_dir
     local setup_rc
-    set +e
     tmp_dir=$(setup_temp_git_repo)
     setup_rc=$?
-    set -e
     if [[ $setup_rc -ne 0 || -z "$tmp_dir" ]]; then
         local suffix=""
         [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
@@ -190,7 +205,10 @@ test_in_git_repo() {
     
     # Setup test environment
     rm -f test_transcript.jsonl
-    $setup_func
+    if ! $setup_func; then
+        echo -e "${RED}✗${NC} $test_name: Setup function failed"
+        return 0
+    fi
     
     # Run the script with optional emoji flag
     local result
@@ -233,14 +251,15 @@ test_emoji_status() {
     
     # Setup test environment
     rm -f test_transcript.jsonl
-    $setup_func
+    if ! $setup_func; then
+        echo -e "${RED}✗${NC} $test_name: Setup function failed"
+        return 0
+    fi
     
     # Run the script with --emoji flag
     local result
-    set +e
     result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" --emoji 2>&1)
     local exit_code=$?
-    set -e
     
     if [[ $exit_code -ne 0 ]]; then
         echo -e "${RED}✗${NC} $test_name (emoji): Script failed with exit code $exit_code"
