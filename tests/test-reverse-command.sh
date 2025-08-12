@@ -5,6 +5,9 @@
 TEST_DIR="$(mktemp -d -t reverse_cmd_test.XXXXXX)"
 TEST_DATA="$TEST_DIR/test_data.txt"
 
+# Ensure cleanup even on early exit
+trap 'rm -rf "$TEST_DIR"' EXIT
+
 # Test result tracking
 PASSED_TESTS=0
 FAILED_TESTS=0
@@ -45,7 +48,8 @@ test_tac_functionality() {
     echo "Test 1: tac command functionality"
     
     if command -v tac >/dev/null 2>&1; then
-        local result=$(tac "$TEST_DATA" | head -1)
+        local result
+        result=$(tac "$TEST_DATA" | head -1)
         run_test "tac functionality" "line 4" "$result"
     else
         echo "ℹ️  tac not available, skipping functionality test"
@@ -59,7 +63,8 @@ test_tail_r_functionality() {
     echo "Test 2: tail -r command functionality"
     
     if command -v tail >/dev/null 2>&1 && tail -r </dev/null >/dev/null 2>&1; then
-        local result=$(tail -r "$TEST_DATA" | head -1)
+        local result
+        result=$(tail -r "$TEST_DATA" | head -1)
         run_test "tail -r functionality" "line 4" "$result"
     else
         echo "ℹ️  tail -r not available, skipping functionality test"
@@ -84,8 +89,10 @@ test_functional_equivalence() {
     fi
     
     if [[ "$tac_available" == "true" && "$tail_r_available" == "true" ]]; then
-        local tac_output=$(tac "$TEST_DATA")
-        local tail_r_output=$(tail -r "$TEST_DATA")
+        local tac_output
+        tac_output=$(tac "$TEST_DATA")
+        local tail_r_output
+        tail_r_output=$(tail -r "$TEST_DATA")
         
         if [[ "$tac_output" == "$tail_r_output" ]]; then
             run_test "tac vs tail -r equivalence" "equivalent" "equivalent"
@@ -110,14 +117,28 @@ test_reverse_cmd_with_tac() {
     # Create tac shim that works
     cat > "$test_bin/tac" << 'EOF'
 #!/bin/bash
-exec /usr/bin/tac "$@"
+# Find real tac, skipping our shim
+for dir in /usr/bin /bin /usr/local/bin; do
+    if [[ -x "$dir/tac" ]]; then
+        exec "$dir/tac" "$@"
+    fi
+done
+echo "tac not found" >&2
+exit 127
 EOF
     chmod +x "$test_bin/tac"
     
     # Create tail shim that supports -r
     cat > "$test_bin/tail" << 'EOF'
 #!/bin/bash
-exec /usr/bin/tail "$@"
+# Find real tail, skipping our shim
+for dir in /usr/bin /bin /usr/local/bin; do
+    if [[ -x "$dir/tail" ]]; then
+        exec "$dir/tail" "$@"
+    fi
+done
+echo "tail not found" >&2
+exit 127
 EOF
     chmod +x "$test_bin/tail"
     
@@ -141,7 +162,8 @@ echo "\$REVERSE_CMD"
 EOF
     
     chmod +x "$test_script"
-    local result=$("$test_script")
+    local result
+    result=$("$test_script")
     run_test "REVERSE_CMD with tac available" "tac" "$result"
     
     rm -rf "$test_bin" "$test_script"
@@ -166,7 +188,14 @@ test_reverse_cmd_with_tail_only() {
     # Create tail shim that supports -r
     cat > "$test_bin/tail" << 'EOF'
 #!/bin/bash
-exec /usr/bin/tail "$@"
+# Find real tail, skipping our shim
+for dir in /usr/bin /bin /usr/local/bin; do
+    if [[ -x "$dir/tail" ]]; then
+        exec "$dir/tail" "$@"
+    fi
+done
+echo "tail not found" >&2
+exit 127
 EOF
     chmod +x "$test_bin/tail"
     
@@ -190,7 +219,8 @@ echo "\$REVERSE_CMD"
 EOF
     
     chmod +x "$test_script"
-    local result=$("$test_script")
+    local result
+    result=$("$test_script")
     run_test "REVERSE_CMD with tail -r only" "tail -r" "$result"
     
     rm -rf "$test_bin" "$test_script"
@@ -239,9 +269,8 @@ echo "\$REVERSE_CMD"
 EOF
     
     chmod +x "$test_script"
-    "$test_script" >/dev/null 2>&1
-    local exit_code=$?
-    local result=$("$test_script" 2>&1 || true)
+    local result
+    result=$("$test_script" 2>&1); local exit_code=$?
     
     if [[ $exit_code -eq 1 ]]; then
         run_test "REVERSE_CMD with no commands" "error_exit_1" "error_exit_1"
@@ -258,7 +287,8 @@ test_common_config_integration() {
     echo "Test 7: Integration with actual common-config.sh"
     
     local test_script="$TEST_DIR/test_integration.sh"
-    local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    local project_root
+    project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
     mkdir -p "$TEST_DIR"
     
     cat > "$test_script" << EOF
@@ -277,7 +307,8 @@ echo -e "first\nsecond\nthird" | \$REVERSE_CMD | head -1
 EOF
     
     chmod +x "$test_script"
-    local result=$("$test_script" 2>&1)
+    local result
+    result=$("$test_script" 2>&1)
     local exit_code=$?
     
     if [[ $exit_code -eq 0 && "$result" == "third" ]]; then
@@ -351,8 +382,7 @@ echo "Tests passed: $PASSED_TESTS"
 echo "Tests failed: $FAILED_TESTS" 
 echo "Total tests: $TOTAL_TESTS"
 
-# Cleanup
-rm -rf "$TEST_DIR"  # TEST_DATA is inside TEST_DIR, so only need to remove TEST_DIR
+# Cleanup is handled by EXIT trap
 
 if [[ $FAILED_TESTS -eq 0 ]]; then
     echo -e "${GREEN}🎉 All reverse command tests passed!${NC}"
