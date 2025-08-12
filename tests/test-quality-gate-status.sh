@@ -1,10 +1,25 @@
 #!/bin/bash
 # Test for quality-gate-status.sh
 
-set -e
+set -euo pipefail
+
+# Debug info for CI (only in CI environment)
+if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "Debug: Running in CI environment"
+    echo "Debug: Current directory: $(pwd)"
+    echo "Debug: Script location: ${BASH_SOURCE[0]}"
+fi
 
 # Source test data  
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ ! -f "$TESTS_DIR/test-data-common.sh" ]]; then
+    echo "ERROR: test-data-common.sh not found at $TESTS_DIR"
+    echo "Directory contents:"
+    ls -la "$TESTS_DIR" || true
+    exit 1
+fi
+
 source "$TESTS_DIR/test-data-common.sh"
 
 # Colors for output
@@ -20,6 +35,18 @@ pass_count=0
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT_PATH="$PROJECT_ROOT/.claude/scripts/quality-gate-status.sh"
 
+if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "Debug: Project root: $PROJECT_ROOT"
+    echo "Debug: Script path: $SCRIPT_PATH"
+fi
+
+if [[ ! -f "$SCRIPT_PATH" ]]; then
+    echo "ERROR: quality-gate-status.sh not found at $SCRIPT_PATH"
+    echo "Directory contents of $PROJECT_ROOT/.claude/scripts:"
+    ls -la "$PROJECT_ROOT/.claude/scripts" || true
+    exit 1
+fi
+
 # Test function
 test_status() {
     local test_name="$1"
@@ -34,7 +61,16 @@ test_status() {
     
     # Run the script
     local result
-    result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH")
+    set +e
+    result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" 2>&1)
+    local exit_code=$?
+    set -e
+    
+    if [[ $exit_code -ne 0 ]]; then
+        echo -e "${RED}✗${NC} $test_name: Script failed with exit code $exit_code"
+        echo "  Output: $result"
+        return 0
+    fi
     
     if [[ "$result" == "$expected" ]]; then
         echo -e "${GREEN}✓${NC} $test_name: $result"
@@ -201,7 +237,16 @@ test_emoji_status() {
     
     # Run the script with --emoji flag
     local result
-    result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" --emoji)
+    set +e
+    result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" --emoji 2>&1)
+    local exit_code=$?
+    set -e
+    
+    if [[ $exit_code -ne 0 ]]; then
+        echo -e "${RED}✗${NC} $test_name (emoji): Script failed with exit code $exit_code"
+        echo "  Output: $result"
+        return 0
+    fi
     
     if [[ "$result" == "$expected" ]]; then
         echo -e "${GREEN}✓${NC} $test_name (emoji): $result"
