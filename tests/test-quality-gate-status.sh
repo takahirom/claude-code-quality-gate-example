@@ -95,7 +95,7 @@ setup_auto_approved() {
     # Create transcript with many stop hook attempts (>10)
     {
         get_data "USER_INPUT"
-        for i in {1..11}; do
+        for _ in {1..11}; do
             get_data "STOP_HOOK_FEEDBACK"
         done
     } > test_transcript.jsonl
@@ -103,13 +103,16 @@ setup_auto_approved() {
 
 # Helper functions for git repo tests
 setup_temp_git_repo() {
-    local tmp_dir=$(mktemp -d) || return 1
+    local tmp_dir
+    tmp_dir=$(mktemp -d) || return 1
+    (
+        cd "$tmp_dir" || exit 1
+        git init --quiet || exit 1
+        echo "test" > test.txt
+        git add test.txt && git commit -m "Initial" --quiet || exit 1
+        echo "changed" >> test.txt
+    ) || return 1
     echo "$tmp_dir"
-    cd "$tmp_dir" || return 1
-    git init --quiet || return 1
-    echo "test" > test.txt
-    git add test.txt && git commit -m "Initial" --quiet || return 1
-    echo "changed" >> test.txt
 }
 
 # Unified test function for git repo tests
@@ -121,14 +124,17 @@ test_in_git_repo() {
     
     ((test_count++))
     
-    local original_dir=$(pwd)
-    local tmp_dir=$(setup_temp_git_repo)
+    local original_dir
+    original_dir=$(pwd)
+    local tmp_dir
+    tmp_dir=$(setup_temp_git_repo)
     if [[ -z "$tmp_dir" ]]; then
         local suffix=""
         [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
         echo -e "${RED}✗${NC} $test_name$suffix: Failed to setup test environment"
         return 1
     fi
+    cd "$tmp_dir" || return 1
     
     # Setup test environment
     rm -f test_transcript.jsonl
