@@ -114,31 +114,30 @@ test_reverse_cmd_with_tac() {
     local test_bin="$TEST_DIR/bin"
     mkdir -p "$test_bin"
     
-    # Create tac shim that works
+    # Create tac shim that minimally implements reversal (stdin or files)
     cat > "$test_bin/tac" << 'EOF'
 #!/bin/bash
-# Find real tac, skipping our shim
-for dir in /usr/bin /bin /usr/local/bin; do
-    if [[ -x "$dir/tac" ]]; then
-        exec "$dir/tac" "$@"
-    fi
-done
-echo "tac not found" >&2
-exit 127
+# Minimal tac for tests: reverse lines from stdin or files without host deps
+awk '{ a[NR]=$0 } END { for (i=NR; i>0; i--) print a[i] }' "$@"
 EOF
     chmod +x "$test_bin/tac"
     
-    # Create tail shim that supports -r
+    # Create tail shim that supports -r (only needed for detection)
     cat > "$test_bin/tail" << 'EOF'
 #!/bin/bash
-# Find real tail, skipping our shim
+if [[ "${1:-}" == "-r" ]]; then
+  shift
+  awk '{ a[NR]=$0 } END { for (i=NR; i>0; i--) print a[i] }' "$@"
+  exit 0
+fi
+# For other tail usage, fall back to system tail if available
 for dir in /usr/bin /bin /usr/local/bin; do
     if [[ -x "$dir/tail" ]]; then
         exec "$dir/tail" "$@"
     fi
 done
-echo "tail not found" >&2
-exit 127
+echo "unsupported tail usage in test shim" >&2
+exit 64
 EOF
     chmod +x "$test_bin/tail"
     
@@ -173,37 +172,31 @@ EOF
 test_reverse_cmd_with_tail_only() {
     echo "Test 5: REVERSE_CMD detection when only tail -r is available"
     
-    # Skip test if system tac cannot be hidden
-    if [[ -f /usr/bin/tac ]]; then
-        echo "ℹ️  Skipping tail-only test (system tac present in /usr/bin)"
-        ((TOTAL_TESTS++))
-        ((PASSED_TESTS++))
-        return
-    fi
+    # No skip: we create an isolated PATH so tac is guaranteed unavailable
     
-    # Create PATH-based shims
+    # Create PATH-based shims with no tac
     local test_bin="$TEST_DIR/bin_tail_only"
     mkdir -p "$test_bin"
     
-    # Create tail shim that supports -r
+    # Create tail shim that supports -r (minimal implementation)
     cat > "$test_bin/tail" << 'EOF'
 #!/bin/bash
-# Find real tail, skipping our shim
-for dir in /usr/bin /bin /usr/local/bin; do
-    if [[ -x "$dir/tail" ]]; then
-        exec "$dir/tail" "$@"
-    fi
-done
-echo "tail not found" >&2
-exit 127
+if [[ "${1:-}" == "-r" ]]; then
+  shift
+  awk '{ a[NR]=$0 } END { for (i=NR; i>0; i--) print a[i] }' "$@"
+  exit 0
+fi
+echo "unsupported tail usage in test shim" >&2
+exit 64
 EOF
     chmod +x "$test_bin/tail"
     
-    # Test script with limited PATH
+    # Test script with isolated PATH (no tac available)
     local test_script="$TEST_DIR/test_tail.sh"
     cat > "$test_script" << EOF
 #!/bin/bash
-export PATH="$test_bin:/bin:/sbin"
+export PATH="$test_bin"
+hash -r  # Clear command hash table
 
 # Copy REVERSE_CMD detection logic from common-config.sh
 if command -v tac >/dev/null 2>&1; then
@@ -237,11 +230,12 @@ test_reverse_cmd_no_commands() {
     # Create tail shim that doesn't support -r
     cat > "$test_bin/tail" << 'EOF'
 #!/bin/bash
-if [[ "$1" == "-r" ]]; then
+if [[ "${1:-}" == "-r" ]]; then
     echo "tail: invalid option -- 'r'" >&2
     exit 1
 fi
-# Otherwise fail
+# Otherwise fail for any other usage
+echo "tail: command not found" >&2
 exit 127
 EOF
     chmod +x "$test_bin/tail"
