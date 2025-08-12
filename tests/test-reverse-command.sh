@@ -2,8 +2,8 @@
 # Test reverse command detection and functionality
 
 # Test configuration
-TEST_DIR="/tmp/reverse_cmd_test_$$"
-TEST_DATA="/tmp/test_data.txt"
+TEST_DIR="$(mktemp -d -t reverse_cmd_test.XXXXXX)"
+TEST_DATA="$TEST_DIR/test_data.txt"
 
 # Test result tracking
 PASSED_TESTS=0
@@ -103,22 +103,29 @@ test_functional_equivalence() {
 test_reverse_cmd_with_tac() {
     echo "Test 4: REVERSE_CMD detection when tac is available"
     
-    # Create temporary script to test REVERSE_CMD detection
-    local test_script="$TEST_DIR/test_tac.sh"
-    mkdir -p "$TEST_DIR"
+    # Create PATH-based shims for robust testing
+    local test_bin="$TEST_DIR/bin"
+    mkdir -p "$test_bin"
     
-    cat > "$test_script" << 'EOF'
+    # Create tac shim that works
+    cat > "$test_bin/tac" << 'EOF'
 #!/bin/bash
-# Mock tac always available
-command() {
-    if [[ "$1" == "-v" && "$2" == "tac" ]]; then
-        return 0  # tac available
-    elif [[ "$1" == "-v" && "$2" == "tail" ]]; then
-        return 0  # tail also available
-    else
-        return 1
-    fi
-}
+exec /usr/bin/tac "$@"
+EOF
+    chmod +x "$test_bin/tac"
+    
+    # Create tail shim that supports -r
+    cat > "$test_bin/tail" << 'EOF'
+#!/bin/bash
+exec /usr/bin/tail "$@"
+EOF
+    chmod +x "$test_bin/tail"
+    
+    # Test with modified PATH
+    local test_script="$TEST_DIR/test_tac.sh"
+    cat > "$test_script" << EOF
+#!/bin/bash
+export PATH="$test_bin:\$PATH"
 
 # Copy REVERSE_CMD detection logic from common-config.sh
 if command -v tac >/dev/null 2>&1; then
@@ -130,44 +137,39 @@ else
     exit 1
 fi
 
-echo "$REVERSE_CMD"
+echo "\$REVERSE_CMD"
 EOF
     
     chmod +x "$test_script"
     local result=$("$test_script")
     run_test "REVERSE_CMD with tac available" "tac" "$result"
     
-    rm -f "$test_script"
+    rm -rf "$test_bin" "$test_script"
 }
 
 # Test 5: REVERSE_CMD detection with only tail -r available
 test_reverse_cmd_with_tail_only() {
     echo "Test 5: REVERSE_CMD detection when only tail -r is available"
     
-    local test_script="$TEST_DIR/test_tail.sh"
-    mkdir -p "$TEST_DIR"
+    # Create PATH-based shims with no tac
+    local test_bin="$TEST_DIR/bin_tail_only"
+    mkdir -p "$test_bin"
     
-    cat > "$test_script" << 'EOF'
+    # Create tail shim that supports -r
+    cat > "$test_bin/tail" << 'EOF'
 #!/bin/bash
-# Mock only tail available
-command() {
-    if [[ "$1" == "-v" && "$2" == "tac" ]]; then
-        return 1  # tac not available
-    elif [[ "$1" == "-v" && "$2" == "tail" ]]; then
-        return 0  # tail available
-    else
-        return 1
-    fi
-}
-
-# Mock tail -r test
-tail() {
-    if [[ "$1" == "-r" ]]; then
-        return 0  # tail -r works
-    else
-        return 1
-    fi
-}
+exec /usr/bin/tail "$@"
+EOF
+    chmod +x "$test_bin/tail"
+    
+    # No tac shim - command not found
+    
+    # Test with modified PATH - exclude system paths that might have tac
+    local test_script="$TEST_DIR/test_tail.sh"
+    cat > "$test_script" << EOF
+#!/bin/bash
+# Use only our test bin and basic system directories (no /usr/bin where tac lives)
+export PATH="$test_bin:/bin:/usr/sbin:/sbin"
 
 # Copy REVERSE_CMD detection logic from common-config.sh
 if command -v tac >/dev/null 2>&1; then
@@ -179,64 +181,56 @@ else
     exit 1
 fi
 
-echo "$REVERSE_CMD"
+echo "\$REVERSE_CMD"
 EOF
     
     chmod +x "$test_script"
     local result=$("$test_script")
     run_test "REVERSE_CMD with tail -r only" "tail -r" "$result"
     
-    rm -f "$test_script"
+    rm -rf "$test_bin" "$test_script"
 }
 
 # Test 6: REVERSE_CMD detection with neither command available
 test_reverse_cmd_no_commands() {
     echo "Test 6: REVERSE_CMD detection when no commands available"
     
-    local test_script="$TEST_DIR/test_none.sh"
-    mkdir -p "$TEST_DIR"
+    # Create PATH with no useful commands
+    local test_bin="$TEST_DIR/bin_empty"
+    mkdir -p "$test_bin"
     
-    cat > "$test_script" << 'EOF'
+    # Create tail shim that doesn't support -r
+    cat > "$test_bin/tail" << 'EOF'
 #!/bin/bash
-# Test scenario: neither tac nor tail support reverse
-# Use a different approach - mock successful command -v but failing execution
-
-# Mock tac command that exists but doesn't work
-tac() { echo "tac: command not found" >&2; exit 127; }
-
-# Mock tail command that exists but -r option fails  
-tail() {
-    if [[ "$1" == "-r" ]]; then
-        echo "tail: invalid option -- 'r'" >&2
-        return 1
-    fi
-    /usr/bin/tail "$@"
-}
-
-# Export functions
-export -f tac tail
+if [[ "$1" == "-r" ]]; then
+    echo "tail: invalid option -- 'r'" >&2
+    exit 1
+fi
+# Otherwise fail
+exit 127
+EOF
+    chmod +x "$test_bin/tail"
+    
+    # No tac at all
+    
+    # Test with very limited PATH
+    local test_script="$TEST_DIR/test_none.sh"
+    cat > "$test_script" << EOF
+#!/bin/bash
+# Use minimal PATH with only our shims
+export PATH="$test_bin"
 
 # Copy REVERSE_CMD detection logic from common-config.sh
-# But first, let's test what we expect to happen
-if /usr/bin/which tac >/dev/null 2>&1; then
-    echo "DEBUG: tac found by which" >&2
-elif /usr/bin/which tail >/dev/null 2>&1 && tail -r </dev/null >/dev/null 2>&1; then
-    echo "DEBUG: tail -r works" >&2
-else
-    echo "DEBUG: neither available" >&2
-fi
-
-# Now test the actual logic but force failure
-if false; then  # Force to skip tac
+if command -v tac >/dev/null 2>&1; then
     REVERSE_CMD="tac"
-elif false && tail -r </dev/null >/dev/null 2>&1; then  # Force to skip tail -r
+elif command -v tail >/dev/null 2>&1 && tail -r </dev/null >/dev/null 2>&1; then
     REVERSE_CMD="tail -r"
 else
     echo "ERROR: No reverse command found (tac or tail -r). Please install coreutils (tac) or ensure tail -r is available." >&2
     exit 1
 fi
 
-echo "$REVERSE_CMD"
+echo "\$REVERSE_CMD"
 EOF
     
     chmod +x "$test_script"
@@ -251,7 +245,7 @@ EOF
         run_test "REVERSE_CMD with no commands" "error_exit_1" "unexpected_$exit_code"
     fi
     
-    rm -f "$test_script"
+    rm -rf "$test_bin" "$test_script"
 }
 
 # Test 7: Integration test with common-config.sh
@@ -353,7 +347,7 @@ echo "Tests failed: $FAILED_TESTS"
 echo "Total tests: $TOTAL_TESTS"
 
 # Cleanup
-rm -rf "$TEST_DIR" "$TEST_DATA"
+rm -rf "$TEST_DIR"  # TEST_DATA is inside TEST_DIR, so only need to remove TEST_DIR
 
 if [[ $FAILED_TESTS -eq 0 ]]; then
     echo -e "${GREEN}🎉 All reverse command tests passed!${NC}"
