@@ -31,6 +31,9 @@ jobs:
     - name: Test quality-gate-pre-commit.sh syntax
       run: bash -n .claude/scripts/quality-gate-pre-commit.sh
     
+    - name: Test quality-gate-status.sh syntax
+      run: bash -n .claude/scripts/quality-gate-status.sh
+    
     - name: Run comprehensive function tests
       run: ./tests/test-functions.sh
     
@@ -40,6 +43,10 @@ jobs:
     
     - name: Run edge case tests
       run: ./tests/test-edge-cases.sh
+      if: always()
+    
+    - name: Run quality-gate-status tests
+      run: ./tests/test-quality-gate-status.sh
       if: always()
     
     - name: Test script dependencies
