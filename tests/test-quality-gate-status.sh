@@ -60,6 +60,7 @@ test_status() {
     rm -f test_transcript.jsonl
     if ! $setup_func; then
         echo -e "${RED}✗${NC} $test_name: Setup function failed"
+        rm -f test_transcript.jsonl
         return 0
     fi
     
@@ -71,6 +72,7 @@ test_status() {
     if [[ $exit_code -ne 0 ]]; then
         echo -e "${RED}✗${NC} $test_name: Script failed with exit code $exit_code"
         echo "  Output: $result"
+        rm -f test_transcript.jsonl
         return 0
     fi
     
@@ -247,12 +249,12 @@ test_in_git_repo() {
         echo -e "${RED}✗${NC} $test_name$suffix: expected '$expected', got '$result'"
     fi
     
-    # Remove temp repo first, then attempt to restore cwd
-    rm -rf "$tmp_dir"
-    cd "$original_dir" || {
+    # Restore cwd first, then remove temp repo
+    if ! cd "$original_dir"; then
         echo -e "${RED}✗${NC} $test_name$suffix: Failed to cd back to $original_dir"
         return 0
-    }
+    fi
+    rm -rf "$tmp_dir"
 }
 
 # Wrapper functions for backward compatibility
@@ -276,6 +278,7 @@ test_emoji_status() {
     rm -f test_transcript.jsonl
     if ! $setup_func; then
         echo -e "${RED}✗${NC} $test_name: Setup function failed"
+        rm -f test_transcript.jsonl
         return 0
     fi
     
@@ -287,6 +290,7 @@ test_emoji_status() {
     if [[ $exit_code -ne 0 ]]; then
         echo -e "${RED}✗${NC} $test_name (emoji): Script failed with exit code $exit_code"
         echo "  Output: $result"
+        rm -f test_transcript.jsonl
         return 0
     fi
     
