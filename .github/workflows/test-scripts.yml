@@ -49,6 +49,10 @@ jobs:
       run: ./tests/test-quality-gate-status.sh
       if: always()
     
+    - name: Run reverse command tests  
+      run: ./tests/test-reverse-command.sh
+      if: always()
+    
     - name: Test script dependencies
       run: |
         echo "Checking script dependencies..."
