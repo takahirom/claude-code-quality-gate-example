@@ -193,6 +193,8 @@ test_in_git_repo() {
         [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
         echo -e "${RED}✗${NC} $test_name$suffix: Failed to setup test environment"
         ((test_count--))
+        # Cleanup temp dir if it exists
+        [[ -n "$tmp_dir" && -d "$tmp_dir" ]] && rm -rf "$tmp_dir"
         return 0
     fi
     if ! cd "$tmp_dir"; then
@@ -200,26 +202,43 @@ test_in_git_repo() {
         [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
         echo -e "${RED}✗${NC} $test_name$suffix: Failed to cd into temp repo"
         ((test_count--))
+        rm -rf "$tmp_dir"
         return 0
     fi
     
     # Setup test environment
     rm -f test_transcript.jsonl
     if ! $setup_func; then
-        echo -e "${RED}✗${NC} $test_name: Setup function failed"
+        local suffix=""
+        [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
+        echo -e "${RED}✗${NC} $test_name$suffix: Setup function failed"
+        # Cleanup and restore cwd before returning
+        rm -rf "$tmp_dir"
+        cd "$original_dir" || true
         return 0
     fi
     
-    # Run the script with optional emoji flag
+    # Run the script with optional emoji flag, capture stderr and exit code
     local result
+    local exit_code
     if [[ -n "$emoji_flag" ]]; then
-        result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" "$emoji_flag")
+        result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" "$emoji_flag" 2>&1)
+        exit_code=$?
     else
-        result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH")
+        result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" 2>&1)
+        exit_code=$?
     fi
     
     local suffix=""
     [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
+    
+    if [[ $exit_code -ne 0 ]]; then
+        echo -e "${RED}✗${NC} $test_name$suffix: Script failed with exit code $exit_code"
+        echo "  Output: $result"
+        rm -rf "$tmp_dir"
+        cd "$original_dir" || true
+        return 0
+    fi
     
     if [[ "$result" == "$expected" ]]; then
         echo -e "${GREEN}✓${NC} $test_name$suffix: $result"
@@ -228,8 +247,12 @@ test_in_git_repo() {
         echo -e "${RED}✗${NC} $test_name$suffix: expected '$expected', got '$result'"
     fi
     
-    cd "$original_dir"
+    # Remove temp repo first, then attempt to restore cwd
     rm -rf "$tmp_dir"
+    cd "$original_dir" || {
+        echo -e "${RED}✗${NC} $test_name$suffix: Failed to cd back to $original_dir"
+        return 0
+    }
 }
 
 # Wrapper functions for backward compatibility
