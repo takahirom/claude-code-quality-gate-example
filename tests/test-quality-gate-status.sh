@@ -100,6 +100,65 @@ setup_auto_approved() {
     } > test_transcript.jsonl
 }
 
+# Helper functions for git repo tests
+setup_temp_git_repo() {
+    local tmp_dir=$(mktemp -d) || return 1
+    echo "$tmp_dir"
+    cd "$tmp_dir" || return 1
+    git init --quiet || return 1
+    echo "test" > test.txt
+    git add test.txt && git commit -m "Initial" --quiet || return 1
+    echo "changed" >> test.txt
+}
+
+# Unified test function for git repo tests
+test_in_git_repo() {
+    local test_name="$1"
+    local expected="$2"
+    local setup_func="$3"
+    local emoji_flag="$4"  # Optional: "--emoji" or ""
+    
+    ((test_count++))
+    
+    local original_dir=$(pwd)
+    local tmp_dir=$(setup_temp_git_repo)
+    if [[ -z "$tmp_dir" ]]; then
+        local suffix=""
+        [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
+        echo -e "${RED}✗${NC} $test_name$suffix: Failed to setup test environment"
+        return 1
+    fi
+    
+    # Setup test environment
+    rm -f test_transcript.jsonl
+    $setup_func
+    
+    # Run the script with optional emoji flag
+    local result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" $emoji_flag)
+    
+    local suffix=""
+    [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
+    
+    if [[ "$result" == "$expected" ]]; then
+        echo -e "${GREEN}✓${NC} $test_name$suffix: $result"
+        ((pass_count++))
+    else
+        echo -e "${RED}✗${NC} $test_name$suffix: expected '$expected', got '$result'"
+    fi
+    
+    cd "$original_dir"
+    rm -rf "$tmp_dir"
+}
+
+# Wrapper functions for backward compatibility
+test_status_in_git_repo() {
+    test_in_git_repo "$1" "$2" "$3" ""
+}
+
+test_emoji_status_in_git_repo() {
+    test_in_git_repo "$1" "$2" "$3" "--emoji"
+}
+
 # Test function for emoji mode
 test_emoji_status() {
     local test_name="$1"
@@ -135,7 +194,7 @@ test_status "APPROVED state" "APPROVED" setup_approved
 test_status "REJECTED state" "REJECTED" setup_rejected
 test_status "PENDING state (no result)" "PENDING" setup_pending
 test_status "PENDING state (empty file)" "PENDING" setup_empty
-test_status "PENDING state (no file)" "PENDING" setup_no_file
+test_status_in_git_repo "PENDING state (no file)" "PENDING" setup_no_file
 test_status "PENDING state (stale approval)" "PENDING" setup_stale_approval
 test_status "AUTO-APPROVED state (max attempts)" "APPROVED" setup_auto_approved
 
@@ -145,7 +204,7 @@ test_emoji_status "APPROVED state" "✅" setup_approved
 test_emoji_status "REJECTED state" "❌" setup_rejected
 test_emoji_status "PENDING state (no result)" "⏳" setup_pending
 test_emoji_status "PENDING state (empty file)" "⏳" setup_empty
-test_emoji_status "PENDING state (no file)" "⏳" setup_no_file
+test_emoji_status_in_git_repo "PENDING state (no file)" "⏳" setup_no_file
 test_emoji_status "PENDING state (stale approval)" "⏳" setup_stale_approval
 test_emoji_status "AUTO-APPROVED state (max attempts)" "✅" setup_auto_approved
 
