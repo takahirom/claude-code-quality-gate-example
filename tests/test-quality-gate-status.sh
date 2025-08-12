@@ -108,8 +108,13 @@ setup_temp_git_repo() {
     (
         cd "$tmp_dir" || exit 1
         git init --quiet || exit 1
+        # Ensure commits work in CI without global git identity
+        git config user.email "test@example.com" || exit 1
+        git config user.name "Test User" || exit 1
+        git config commit.gpgsign false || exit 1
         echo "test" > test.txt
-        git add test.txt && git commit -m "Initial" --quiet || exit 1
+        git add test.txt || exit 1
+        git commit -m "Initial" --quiet || exit 1
         echo "changed" >> test.txt
     ) || return 1
     echo "$tmp_dir"
@@ -127,14 +132,25 @@ test_in_git_repo() {
     local original_dir
     original_dir=$(pwd)
     local tmp_dir
+    local setup_rc
+    set +e
     tmp_dir=$(setup_temp_git_repo)
-    if [[ -z "$tmp_dir" ]]; then
+    setup_rc=$?
+    set -e
+    if [[ $setup_rc -ne 0 || -z "$tmp_dir" ]]; then
         local suffix=""
         [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
         echo -e "${RED}✗${NC} $test_name$suffix: Failed to setup test environment"
-        return 1
+        ((test_count--))
+        return 0
     fi
-    cd "$tmp_dir" || return 1
+    if ! cd "$tmp_dir"; then
+        local suffix=""
+        [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
+        echo -e "${RED}✗${NC} $test_name$suffix: Failed to cd into temp repo"
+        ((test_count--))
+        return 0
+    fi
     
     # Setup test environment
     rm -f test_transcript.jsonl
