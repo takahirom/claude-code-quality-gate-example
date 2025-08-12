@@ -33,7 +33,8 @@ test_status() {
     $setup_func
     
     # Run the script
-    local result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH")
+    local result
+    result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH")
     
     if [[ "$result" == "$expected" ]]; then
         echo -e "${GREEN}✓${NC} $test_name: $result"
@@ -134,7 +135,12 @@ test_in_git_repo() {
     $setup_func
     
     # Run the script with optional emoji flag
-    local result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" $emoji_flag)
+    local result
+    if [[ -n "$emoji_flag" ]]; then
+        result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" "$emoji_flag")
+    else
+        result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH")
+    fi
     
     local suffix=""
     [[ -n "$emoji_flag" ]] && suffix=" (emoji)"
@@ -172,7 +178,8 @@ test_emoji_status() {
     $setup_func
     
     # Run the script with --emoji flag
-    local result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" --emoji)
+    local result
+    result=$(TRANSCRIPT_PATH=test_transcript.jsonl "$SCRIPT_PATH" --emoji)
     
     if [[ "$result" == "$expected" ]]; then
         echo -e "${GREEN}✓${NC} $test_name (emoji): $result"

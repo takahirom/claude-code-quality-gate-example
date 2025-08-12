@@ -33,7 +33,17 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
-# Check git status first (same logic as quality-gate-stop.sh)
+# Check if transcript file exists (takes precedence for status reporting)
+if [[ ! -f "$TRANSCRIPT_PATH" ]]; then
+    if [[ "$EMOJI_MODE" == "true" ]]; then
+        echo "⏳"
+    else
+        echo "PENDING"
+    fi
+    exit 0
+fi
+
+# Check git status (same logic as quality-gate-stop.sh)
 if ! command -v git >/dev/null 2>&1; then
     # Git not available - quality gate is active
     :
@@ -53,16 +63,6 @@ elif [[ -z $(git status --porcelain 2>/dev/null) ]]; then
         echo "🔒"
     else
         echo "DISABLED"
-    fi
-    exit 0
-fi
-
-# Check if transcript file exists
-if [[ ! -f "$TRANSCRIPT_PATH" ]]; then
-    if [[ "$EMOJI_MODE" == "true" ]]; then
-        echo "⏳"
-    else
-        echo "PENDING"
     fi
     exit 0
 fi
