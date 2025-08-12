@@ -1,6 +1,12 @@
 #!/bin/bash
 # Common configuration for quality gate scripts
 
+# Check for required commands
+if ! command -v nl >/dev/null 2>&1; then
+    echo "ERROR: nl command not found. Please install coreutils package." >&2
+    exit 1
+fi
+
 # Run quality gate outside git repositories (default: false)
 # Set to true to enable quality gate checks in non-git directories
 QUALITY_GATE_RUN_OUTSIDE_GIT="${QUALITY_GATE_RUN_OUTSIDE_GIT:-false}"
@@ -103,7 +109,7 @@ count_attempts_since_last_reset_point() {
     local last_approved_line=0
     local approved_result=$(tac "$transcript_path" | nl -nrn | grep "Final Result: ✅ APPROVED" | while read -r line; do
         if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
-            echo "$line" | cut -f1  # Return line number
+            echo "$line" | awk '{print $1}'  # Return line number
             break
         fi
     done | head -1)
@@ -116,9 +122,9 @@ count_attempts_since_last_reset_point() {
     # Find last user input line number using reverse search 
     local last_user_input_line=0
     local user_result=$(tac "$transcript_path" | nl -nrn | grep '"type":"user"' | while read -r line; do
-        local content=$(echo "$line" | jq -r '.message.content[]?.text // empty' 2>/dev/null)
+        local content=$(echo "$line" | cut -f2- | jq -r '.message.content[]?.text // empty' 2>/dev/null)
         if [[ -n "$content" ]] && ! echo "$content" | grep -q "Quality gate blocking session completion"; then
-            echo "$line" | cut -f1  # Return line number
+            echo "$line" | awk '{print $1}'  # Return line number
             break
         fi
     done | head -1)
