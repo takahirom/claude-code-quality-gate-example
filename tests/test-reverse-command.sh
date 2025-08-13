@@ -247,6 +247,8 @@ EOF
 #!/bin/bash
 # Use minimal PATH with only our shims
 export PATH="$test_bin"
+# Clear hashed commands in case of prior resolutions
+hash -r
 
 # Copy REVERSE_CMD detection logic from common-config.sh
 if command -v tac >/dev/null 2>&1; then
@@ -333,15 +335,11 @@ test_performance_comparison() {
         local large_data="$TEST_DIR/large_data.txt"
         seq 1 1000 > "$large_data"
         
-        # Time tac
-        local start_time=$(date +%s.%N 2>/dev/null || date +%s)
+        # Execute tac
         tac "$large_data" >/dev/null
-        local end_time=$(date +%s.%N 2>/dev/null || date +%s)
         
-        # Time tail -r  
-        local start_time2=$(date +%s.%N 2>/dev/null || date +%s)
+        # Execute tail -r
         tail -r "$large_data" >/dev/null
-        local end_time2=$(date +%s.%N 2>/dev/null || date +%s)
         
         echo "ℹ️  Performance test completed (timing may vary)"
         run_test "Performance test executed" "completed" "completed"
