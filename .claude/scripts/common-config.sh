@@ -1,13 +1,29 @@
 #!/bin/bash
 # Common configuration for quality gate scripts
 
+# Check for required commands
+if ! command -v nl >/dev/null 2>&1; then
+    echo "ERROR: nl command not found. Please install coreutils package." >&2
+    exit 1
+fi
+# Determine reverse command (tac on GNU, tail -r on BSD/macOS)
+if command -v tac >/dev/null 2>&1; then
+    REVERSE_CMD="tac"
+elif command -v tail >/dev/null 2>&1 && tail -r </dev/null >/dev/null 2>&1; then
+    REVERSE_CMD="tail -r"
+else
+    echo "ERROR: No reverse command found (tac or tail -r). Please install coreutils (tac) or ensure tail -r is available." >&2
+    exit 1
+fi
+
 # Run quality gate outside git repositories (default: false)
 # Set to true to enable quality gate checks in non-git directories
 QUALITY_GATE_RUN_OUTSIDE_GIT="${QUALITY_GATE_RUN_OUTSIDE_GIT:-false}"
 
 # Configurable pattern for file editing tools (for MCP compatibility)
 # Support both old and new variable names for backward compatibility
-QUALITY_GATE_EDIT_TOOLS_PATTERN="${QUALITY_GATE_EDIT_TOOLS_PATTERN:-${EDIT_TOOLS_PATTERN:-^(Write|Edit|MultiEdit|NotebookEdit)$}}"
+# Includes standard tools and serena MCP tools
+QUALITY_GATE_EDIT_TOOLS_PATTERN="${QUALITY_GATE_EDIT_TOOLS_PATTERN:-${EDIT_TOOLS_PATTERN:-^(Write|Edit|MultiEdit|NotebookEdit|replace_regex|replace_symbol_body|insert_after_symbol|insert_before_symbol)$}}"
 
 # Check dependencies function
 check_dependencies() {
@@ -35,7 +51,7 @@ get_quality_result() {
     
     # Find most recent Final Result from sidechain or toolUseResult only
     # This prevents interference from ongoing Bash commands containing "Final Result:"
-    local result_info=$(tac "$transcript_path" | nl -nrn | grep "Final Result:" | while read -r line; do
+    local result_info=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result:" | while read -r line; do
         # Only check jq for lines that contain Final Result
         if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
             echo "$line"
@@ -100,7 +116,7 @@ count_attempts_since_last_reset_point() {
     # Find last APPROVED result and user input using reverse search
     # Find last APPROVED result line number using reverse search
     local last_approved_line=0
-    local approved_result=$(tac "$transcript_path" | nl -nrn | grep "Final Result: ✅ APPROVED" | while read -r line; do
+    local approved_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result: ✅ APPROVED" | while read -r line; do
         if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
             echo "$line" | cut -f1  # Return line number
             break
@@ -114,8 +130,8 @@ count_attempts_since_last_reset_point() {
     
     # Find last user input line number using reverse search 
     local last_user_input_line=0
-    local user_result=$(tac "$transcript_path" | nl -nrn | grep '"type":"user"' | while read -r line; do
-        local content=$(echo "$line" | jq -r '.message.content[]?.text // empty' 2>/dev/null)
+    local user_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep '"type":"user"' | while read -r line; do
+        local content=$(echo "$line" | cut -f2- | jq -r '.message.content[]?.text // empty' 2>/dev/null)
         if [[ -n "$content" ]] && ! echo "$content" | grep -q "Quality gate blocking session completion"; then
             echo "$line" | cut -f1  # Return line number
             break

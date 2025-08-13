@@ -1,6 +1,9 @@
 #!/bin/bash
 # Debug script to check actual transcript format
 
+# Source common configuration including REVERSE_CMD detection
+source "$(dirname "$0")/.claude/scripts/common-config.sh"
+
 # Use provided path or default
 if [[ -n "$1" ]]; then
     transcript_path="$1"
@@ -58,7 +61,7 @@ echo "Result code: $result_code (0=APPROVED, 1=REJECTED, 2=No result)"
 
 echo -e "\n=== Most Recent Final Result Analysis ==="
 echo "Finding most recent 'Final Result:' line..."
-result_info=$(tac "$transcript_path" | nl -nrn | grep -m1 "Final Result:" | head -1)
+result_info=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep -m1 "Final Result:" | head -1)
 if [[ -n "$result_info" ]]; then
     line_num=$(echo "$result_info" | cut -f1)
     echo "Most recent Final Result found at reverse line: $line_num"
@@ -99,4 +102,4 @@ fi
 
 echo -e "\n=== Recent Sidechain Messages with Final Result ==="
 echo "Looking for sidechain messages with Final Result..."
-tac "$transcript_path" | jq -r 'select(.isSidechain == true) | select(.message.content[]?.text | test("Final Result:")) | "Line: \(.uuid // "unknown") | Content: \(.message.content[]?.text)"' 2>/dev/null | head -3 || echo "No sidechain Final Result messages found"
+$REVERSE_CMD "$transcript_path" | jq -r 'select(.isSidechain == true) | select(.message.content[]?.text | test("Final Result:")) | "Line: \(.uuid // "unknown") | Content: \(.message.content[]?.text)"' 2>/dev/null | head -3 || echo "No sidechain Final Result messages found"
