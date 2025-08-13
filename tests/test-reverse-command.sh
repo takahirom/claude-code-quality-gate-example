@@ -130,12 +130,11 @@ if [[ "${1:-}" == "-r" ]]; then
   awk '{ a[NR]=$0 } END { for (i=NR; i>0; i--) print a[i] }' "$@"
   exit 0
 fi
-# For other tail usage, fall back to system tail if available
-for dir in /usr/bin /bin /usr/local/bin; do
-    if [[ -x "$dir/tail" ]]; then
-        exec "$dir/tail" "$@"
-    fi
-done
+# For other tail usage, fall back to real tail if available
+real="$(command -v tail || true)"
+if [[ -n "$real" ]] && [[ "$real" != "$0" ]]; then
+  exec "$real" "$@"
+fi
 echo "unsupported tail usage in test shim" >&2
 exit 64
 EOF
