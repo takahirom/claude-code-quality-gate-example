@@ -236,15 +236,10 @@ test_precommit_false_positives() {
 echo "Starting integration tests..."
 echo
 
-test_stop_approved
-test_stop_rejected  
-test_stop_no_result
-test_precommit_approved
-test_precommit_rejected
-test_nl_jq_bug
-test_precommit_git_c_option
-test_precommit_double_dash_option
-test_precommit_false_positives
+# Execute all test functions automatically
+for test_func in $(compgen -A function | grep '^test_'); do
+    $test_func
+done
 
 echo
 echo "=== Test Summary ==="

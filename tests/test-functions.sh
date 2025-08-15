@@ -283,19 +283,10 @@ performance_test() {
 echo "Starting function tests..."
 echo
 
-test_approve_detection
-test_reject_detection  
-test_tool_result_approve
-test_tool_result_reject
-test_latest_result
-test_stop_hook_counting
-test_stop_hook_limit
-test_stale_approval
-test_no_result
-test_mixed_results
-test_edit_false_positive
-test_ongoing_session_bug
-test_debug_script_scenario
+# Automatic test discovery - run all test_ functions
+for test_func in $(compgen -A function | grep '^test_'); do
+    $test_func
+done
 
 # Optional performance test
 if command -v bc >/dev/null 2>&1; then
