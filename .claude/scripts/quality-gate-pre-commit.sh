@@ -34,6 +34,10 @@ if [[ "$command" =~ (^|[[:space:];&|])git[[:space:]]+.*commit([[:space:]]|$) ]];
             echo "Step 4: Commit when you get APPROVED status" >&2
             exit 2
             ;;
+        3)  # No edits made
+            echo "✅ No edits detected - allowing commit" >&2
+            exit 0
+            ;;
     esac
 fi
 

@@ -23,7 +23,7 @@ QUALITY_GATE_RUN_OUTSIDE_GIT="${QUALITY_GATE_RUN_OUTSIDE_GIT:-false}"
 # Configurable pattern for file editing tools (for MCP compatibility)
 # Support both old and new variable names for backward compatibility
 # Includes standard tools and serena MCP tools
-QUALITY_GATE_EDIT_TOOLS_PATTERN="${QUALITY_GATE_EDIT_TOOLS_PATTERN:-${EDIT_TOOLS_PATTERN:-^(Write|Edit|MultiEdit|NotebookEdit|replace_regex|replace_symbol_body|insert_after_symbol|insert_before_symbol)$}}"
+QUALITY_GATE_EDIT_TOOLS_PATTERN="${QUALITY_GATE_EDIT_TOOLS_PATTERN:-${EDIT_TOOLS_PATTERN:-(Write|Edit|MultiEdit|NotebookEdit|replace_regex|replace_symbol_body|insert_after_symbol|insert_before_symbol|mcp__serena__(replace_regex|replace_symbol_body|insert_after_symbol|insert_before_symbol))}}"
 
 # Check dependencies function
 check_dependencies() {
@@ -77,6 +77,12 @@ get_quality_result() {
     
     # No Final Result found
     if [[ -z "$last_result" ]]; then
+        # Check if any edits have been made in the session
+        if ! jq -r 'select(.message.content[]?.name) | .message.content[]?.name' "$transcript_path" 2>/dev/null | \
+           grep -qE "$QUALITY_GATE_EDIT_TOOLS_PATTERN"; then
+            # No edits made, skip quality gate
+            return 3  # New return code for "no edits"
+        fi
         return 2
     fi
     

@@ -131,7 +131,7 @@ test_stop_no_result() {
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "stop script with no result" "2" "$exit_code" "$stderr_output"
+    run_test "stop script with no result (no edits)" "0" "$exit_code" "$stderr_output"
 }
 
 # quality-gate-pre-commit.sh with APPROVED result

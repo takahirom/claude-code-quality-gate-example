@@ -312,8 +312,8 @@ echo
 echo "=== Normal mode tests ==="
 test_status "APPROVED state" "APPROVED" setup_approved
 test_status "REJECTED state" "REJECTED" setup_rejected
-test_status "PENDING state (no result)" "PENDING" setup_pending
-test_status "PENDING state (empty file)" "PENDING" setup_empty
+test_status "PENDING state (no result)" "DISABLED" setup_pending  # No edits - DISABLED
+test_status "PENDING state (empty file)" "DISABLED" setup_empty  # No edits - DISABLED
 test_status_in_git_repo "PENDING state (no file)" "PENDING" setup_no_file
 test_status "PENDING state (stale approval)" "PENDING" setup_stale_approval
 test_status "AUTO-APPROVED state (max attempts)" "APPROVED" setup_auto_approved
@@ -322,8 +322,8 @@ echo
 echo "=== Emoji mode tests ==="
 test_emoji_status "APPROVED state" "✅" setup_approved
 test_emoji_status "REJECTED state" "❌" setup_rejected
-test_emoji_status "PENDING state (no result)" "⏳" setup_pending
-test_emoji_status "PENDING state (empty file)" "⏳" setup_empty
+test_emoji_status "PENDING state (no result)" "🔒" setup_pending  # No edits - 🔒
+test_emoji_status "PENDING state (empty file)" "🔒" setup_empty  # No edits - 🔒
 test_emoji_status_in_git_repo "PENDING state (no file)" "⏳" setup_no_file
 test_emoji_status "PENDING state (stale approval)" "⏳" setup_stale_approval
 test_emoji_status "AUTO-APPROVED state (max attempts)" "✅" setup_auto_approved

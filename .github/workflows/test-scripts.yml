@@ -53,6 +53,10 @@ jobs:
       run: ./tests/test-reverse-command.sh
       if: always()
     
+    - name: Run edit tool detection tests
+      run: ./tests/test-edit-tool.sh
+      if: always()
+    
     - name: Test script dependencies
       run: |
         echo "Checking script dependencies..."

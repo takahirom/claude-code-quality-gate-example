@@ -45,17 +45,17 @@ echo "Test 1: Missing file should return 2"
 run_test "Missing file" 2 "nonexistent.jsonl"
 
 # Test 2: Empty file
-echo "Test 2: Empty file should return 2"
+echo "Test 2: Empty file should return 3 (no edits)"
 touch empty.jsonl
-run_test "Empty file" 2 "empty.jsonl"
+run_test "Empty file" 3 "empty.jsonl"  # No edits - returns 3
 
 # Test 3: File with no sidechain messages
-echo "Test 3: No sidechain messages should return 2"
+echo "Test 3: No sidechain messages should return 3 (no edits)"
 cat > no_sidechain.jsonl << 'EOF'
 {"timestamp":"2025-08-04T11:00:00Z","message":{"role":"user","content":[{"type":"text","text":"Hello"}]}}
 {"timestamp":"2025-08-04T11:00:01Z","message":{"role":"assistant","content":[{"type":"text","text":"Hi there"}]}}
 EOF
-run_test "No sidechain messages" 2 "no_sidechain.jsonl"
+run_test "No sidechain messages" 3 "no_sidechain.jsonl"  # No edits - returns 3
 
 # Test 4: Sidechain message with APPROVED result
 echo "Test 4: Sidechain with APPROVED should return 0"
@@ -111,12 +111,12 @@ EOF
 run_test "Malformed JSON handling" 0 "malformed.jsonl"
 
 # Test 10: Sidechain message without Final Result
-echo "Test 10: Sidechain without Final Result should return 2"
+echo "Test 10: Sidechain without Final Result should return 3 (no edits)"
 cat > sidechain_no_result.jsonl << 'EOF'
 {"timestamp":"2025-08-04T11:00:00Z","message":{"role":"user","content":[{"type":"text","text":"Hello"}]}}
 {"timestamp":"2025-08-04T11:00:01Z","isSidechain":true,"message":{"role":"assistant","content":[{"type":"text","text":"This is a sidechain message but no Final Result"}]}}
 EOF
-run_test "Sidechain without Final Result" 2 "sidechain_no_result.jsonl"
+run_test "Sidechain without Final Result" 3 "sidechain_no_result.jsonl"  # No edits - returns 3
 
 # Cleanup
 cd ..
