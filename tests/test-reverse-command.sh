@@ -358,14 +358,10 @@ echo
 
 setup_test_data
 
-test_tac_functionality
-test_tail_r_functionality  
-test_functional_equivalence
-test_reverse_cmd_with_tac
-test_reverse_cmd_with_tail_only
-test_reverse_cmd_no_commands
-test_common_config_integration
-test_performance_comparison
+# Execute all test functions automatically
+for test_func in $(compgen -A function | grep '^test_'); do
+    $test_func
+done
 
 echo
 echo "=== Test Summary ==="

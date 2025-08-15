@@ -208,14 +208,10 @@ test_approved_then_mcp_edit() {
 echo "Starting edit tool detection tests..."
 echo
 
-test_no_tools
-test_read_tool_only
-test_edit_tool
-test_write_tool
-test_mcp_serena_replace_regex
-test_approved_then_no_edit
-test_approved_then_edit
-test_approved_then_mcp_edit
+# Execute all test functions automatically
+for test_func in $(compgen -A function | grep '^test_'); do
+    $test_func
+done
 
 echo
 echo "=== Test Summary ==="
