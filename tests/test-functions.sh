@@ -146,7 +146,7 @@ test_no_result() {
     create_transcript_with "$TEST_TRANSCRIPT" "USER_INPUT" "ASSISTANT_RESPONSE"
     
     get_quality_result "$TEST_TRANSCRIPT"
-    run_test "No result found" "2" "$?"
+    run_test "No result found" "3" "$?"  # No edits detected
 }
 
 # Test 10: Mixed results with toolUseResult override
@@ -171,6 +171,9 @@ test_edit_false_positive() {
         FAILED_TESTS=$((FAILED_TESTS + 1))
     elif [[ $actual_result -eq 2 ]]; then
         echo "✅ Edit tool false positive: FIXED (correctly returns No Result)"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+    elif [[ $actual_result -eq 3 ]]; then
+        echo "✅ Edit tool false positive: FIXED (correctly returns No Edits)"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     else
         echo "❓ Edit tool false positive: UNEXPECTED (returns $actual_result)"

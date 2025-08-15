@@ -94,6 +94,9 @@ if [[ "$EMOJI_MODE" == "true" ]]; then
         2)
             echo "⏳"
             ;;
+        3)
+            echo "🔒"  # No edits - disabled
+            ;;
         *)
             echo "⏳"
             ;;
@@ -108,6 +111,9 @@ else
             ;;
         2)
             echo "PENDING"
+            ;;
+        3)
+            echo "DISABLED"  # No edits
             ;;
         *)
             echo "PENDING"

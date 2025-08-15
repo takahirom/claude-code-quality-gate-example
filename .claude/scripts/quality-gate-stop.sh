@@ -46,6 +46,10 @@ if [[ -f "$transcript_path" ]]; then
         2)  # No result
             echo "No quality result found - proceeding with quality gate" >> "$LOG_FILE"
             ;;
+        3)  # No edits made
+            echo "No edits detected - skipping quality gate" >> "$LOG_FILE"
+            exit 0
+            ;;
     esac
 fi
 

@@ -351,6 +351,18 @@ get_data() {
             [ -z "$EDIT_TOOL_FALSE_POSITIVE" ] && EDIT_TOOL_FALSE_POSITIVE=$(get_edit_tool_false_positive)
             echo "$EDIT_TOOL_FALSE_POSITIVE"
             ;;
+        "READ_TOOL_USE")
+            echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"/test.txt"}}]}}'
+            ;;
+        "EDIT_TOOL_USE")
+            echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/test.txt","old_string":"old","new_string":"new"}}]}}'
+            ;;
+        "WRITE_TOOL_USE")
+            echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"/test.txt","content":"new content"}}]}}'
+            ;;
+        "MCP_SERENA_REPLACE")
+            echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__serena__replace_regex","input":{"relative_path":"test.txt","regex":"old","repl":"new"}}]}}'
+            ;;
         *)
             echo "Unknown data type: $1" >&2
             return 1
