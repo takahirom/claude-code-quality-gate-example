@@ -133,6 +133,8 @@ The system uses quality-gate-keeper's direct output for decision making:
 
 1. **Direct Result Checking**: Parses transcript for `Final Result: ✅ APPROVED` or `Final Result: ❌ REJECTED`
 2. **Stale Approval Detection**: Automatically invalidates old approvals after file edits
+3. **Manual Override**: Type `SKIP QG` to bypass quality gate checks when needed
+4. **Loop Prevention**: Automatically stops after 10 quality check attempts to prevent infinite loops
 
 
 ## Important Notes
