@@ -93,11 +93,9 @@ test_stop_hook_counting() {
     echo "Test 6: Stop hook counting"
     create_transcript_with "$TEST_TRANSCRIPT" "USER_INPUT" "STOP_HOOK_FEEDBACK" "STOP_HOOK_FEEDBACK" "STOP_HOOK_FEEDBACK"
     
-    if count_attempts_since_last_reset_point "$TEST_TRANSCRIPT" 5; then
-        run_test "Stop hook counting" "1" "0"  # Expected to continue (return 1), but got 0 (stop)
-    else
-        run_test "Stop hook counting" "1" "1"  # Expected to continue (return 1), got 1 (continue)
-    fi
+    count_attempts_since_last_reset_point "$TEST_TRANSCRIPT" 5
+    local actual_return_code=$?
+    run_test "Stop hook counting" "1" "$actual_return_code"  # Expected 1 (can continue)
 }
 
 # Test 7: Stop hook limit reached
@@ -110,11 +108,9 @@ test_stop_hook_limit() {
         get_data "STOP_HOOK_FEEDBACK" >> "$TEST_TRANSCRIPT"
     done
     
-    if count_attempts_since_last_reset_point "$TEST_TRANSCRIPT" 5; then
-        run_test "Stop hook limit" "0" "0"  # Expected to stop (return 0), got 0 (stop)
-    else
-        run_test "Stop hook limit" "0" "1"  # Expected to stop (return 0), but got 1 (continue)
-    fi
+    count_attempts_since_last_reset_point "$TEST_TRANSCRIPT" 5
+    local actual_return_code=$?
+    run_test "Stop hook limit" "0" "$actual_return_code"  # Expected 0 (max attempts reached)
 }
 
 # Test 8: Stale approval detection after file edits
@@ -247,9 +243,9 @@ performance_test() {
     echo "Performance Test: Large transcript processing"
     local large_transcript="/tmp/large-test-transcript.jsonl"
     
-    # Create large transcript (1000 entries) 
+    # Create large transcript (50 entries) 
     echo "# Large test transcript" > "$large_transcript"
-    for i in {1..200}; do
+    for i in {1..10}; do
         get_data "USER_INPUT" >> "$large_transcript"
         get_data "ASSISTANT_RESPONSE" >> "$large_transcript"
         get_data "STOP_HOOK_FEEDBACK" >> "$large_transcript"

@@ -90,16 +90,20 @@ get_quality_result() {
         fi
     fi
     
-    # Check for user APPROVE message
+    # Check for user APPROVE message (optimized)
     local user_approve_line=0
     local user_approve
     user_approve=$($REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
-        # Check if it's a user message (not tool_result)
-        if echo "$line" | cut -f2- | jq -e '.type == "user" and (.message.content | type == "string")' >/dev/null 2>&1; then
+        # Quick pre-check to avoid jq calls on non-user lines
+        if [[ "$line" == *'"type":"user"'* ]]; then
+            local json_data
+            json_data=$(echo "$line" | cut -f2-)
+            # Use the helper function to extract content
             local content
-            content=$(echo "$line" | cut -f2- | jq -r '.message.content' 2>/dev/null)
-            # Match whole word "approve" (case-insensitive) but not "approved"
-            if echo "$content" | grep -qiE '\bapprove\b'; then
+            content=$(extract_user_content "$json_data")
+            
+            # Check for approve
+            if [[ -n "$content" ]] && echo "$content" | grep -qiE '\bapprove\b'; then
                 echo "$line" | cut -f1
                 break
             fi
@@ -144,7 +148,23 @@ get_quality_result() {
     fi
 }
 
-# Helper function to extract content from transcript line
+# Helper function to extract user content from a JSON line
+# Handles both string and array formats
+# Input: JSON line (from transcript)
+# Output: extracted text content or empty string
+extract_user_content() {
+    local json_line="$1"
+    echo "$json_line" | jq -r '
+        if (.message.content | type) == "string" then
+            .message.content
+        elif (.message.content | type) == "array" then
+            .message.content[] | select(.type == "text") | .text // empty
+        else
+            empty
+        end' 2>/dev/null
+}
+
+# Helper function to extract content from transcript line (deprecated - use extract_user_content)
 # Returns extracted content or empty string
 extract_message_content() {
     local line="$1"
@@ -178,15 +198,20 @@ count_attempts_since_last_reset_point() {
         last_approved_line=$((total_lines - approved_result + 1))
     fi
     
-    # Find last user input line number using reverse search 
+    # Find last user input line number using reverse search (optimized)
     local last_user_input_line=0
     local user_result
-    user_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep '"type":"user"' | while read -r line; do
-        local content
-        content=$(echo "$line" | cut -f2- | jq -r '.message.content[]?.text // empty' 2>/dev/null)
-        if [[ -n "$content" ]] && ! echo "$content" | grep -q "Quality gate blocking session completion"; then
-            echo "$line" | cut -f1  # Return line number
-            break
+    user_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
+        # Quick pre-check to avoid processing non-user lines
+        if [[ "$line" == *'"type":"user"'* ]]; then
+            local json_data
+            json_data=$(echo "$line" | cut -f2-)
+            local content
+            content=$(extract_user_content "$json_data")
+            if [[ -n "$content" ]] && ! echo "$content" | grep -q "Quality gate blocking session completion"; then
+                echo "$line" | cut -f1  # Return line number
+                break
+            fi
         fi
     done | head -1)
     
