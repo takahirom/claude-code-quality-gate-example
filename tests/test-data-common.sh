@@ -296,8 +296,8 @@ to_compact_json '{
 }'
 }
 
-# User APPROVE variations
-get_user_approve() {
+# User SKIP QG variations
+get_user_skip_qg() {
     to_compact_json '{
   "parentUuid": "'$(generate_uuid)'",
   "isSidechain": false,
@@ -309,14 +309,14 @@ get_user_approve() {
   "type": "user",
   "message": {
     "role": "user",
-    "content": "APPROVE"
+    "content": "SKIP QG"
   },
   "uuid": "'$(generate_uuid)'",
   "timestamp": "'$BASE_TIMESTAMP'"
 }'
 }
 
-get_user_approve_lowercase() {
+get_user_skip_qg_lowercase() {
     to_compact_json '{
   "parentUuid": "'$(generate_uuid)'",
   "isSidechain": false,
@@ -328,14 +328,14 @@ get_user_approve_lowercase() {
   "type": "user",
   "message": {
     "role": "user",
-    "content": "approve"
+    "content": "skip qg"
   },
   "uuid": "'$(generate_uuid)'",
   "timestamp": "'$BASE_TIMESTAMP'"
 }'
 }
 
-get_user_approve_mixed() {
+get_user_skip_qg_mixed() {
     to_compact_json '{
   "parentUuid": "'$(generate_uuid)'",
   "isSidechain": false,
@@ -347,14 +347,14 @@ get_user_approve_mixed() {
   "type": "user",
   "message": {
     "role": "user",
-    "content": "Approve"
+    "content": "Skip QG"
   },
   "uuid": "'$(generate_uuid)'",
   "timestamp": "'$BASE_TIMESTAMP'"
 }'
 }
 
-get_user_approve_in_context() {
+get_user_skip_qg_in_context() {
     to_compact_json '{
   "parentUuid": "'$(generate_uuid)'",
   "isSidechain": false,
@@ -366,7 +366,7 @@ get_user_approve_in_context() {
   "type": "user",
   "message": {
     "role": "user",
-    "content": "please APPROVE this change"
+    "content": "please SKIP QG for this change"
   },
   "uuid": "'$(generate_uuid)'",
   "timestamp": "'$BASE_TIMESTAMP'"
@@ -411,8 +411,8 @@ get_user_looks_good() {
 }'
 }
 
-# 11. User message saying "I do not approve" - should NOT match
-get_user_do_not_approve() {
+# 11. User message saying "I will not skip qg" - should NOT match
+get_user_not_skip_qg() {
     to_compact_json '{
   "parentUuid": "'$(generate_uuid)'",
   "isSidechain": false,
@@ -424,7 +424,7 @@ get_user_do_not_approve() {
   "type": "user",
   "message": {
     "role": "user",
-    "content": "I do not approve"
+    "content": "I will not skip qg"
   },
   "uuid": "'$(generate_uuid)'",
   "timestamp": "'$BASE_TIMESTAMP'"
@@ -441,11 +441,11 @@ APPROVE_RESULT=""
 TOOL_USE_RESULT_REJECT=""
 TOOL_USE_RESULT_APPROVE=""
 EDIT_TOOL_FALSE_POSITIVE=""
-USER_APPROVE=""
-USER_APPROVE_LOWERCASE=""
-USER_APPROVE_MIXED=""
-USER_APPROVE_IN_CONTEXT=""
-USER_DO_NOT_APPROVE=""
+USER_SKIP_QG=""
+USER_SKIP_QG_LOWERCASE=""
+USER_SKIP_QG_MIXED=""
+USER_SKIP_QG_IN_CONTEXT=""
+USER_NOT_SKIP_QG=""
 USER_LGTM=""
 USER_LOOKS_GOOD=""
 
@@ -500,25 +500,25 @@ get_data() {
         "MCP_SERENA_REPLACE")
             echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__serena__replace_regex","input":{"relative_path":"test.txt","regex":"old","repl":"new"}}]}}'
             ;;
-        "USER_APPROVE")
-            [ -z "$USER_APPROVE" ] && USER_APPROVE=$(get_user_approve)
-            echo "$USER_APPROVE"
+        "USER_SKIP_QG")
+            [ -z "$USER_SKIP_QG" ] && USER_SKIP_QG=$(get_user_skip_qg)
+            echo "$USER_SKIP_QG"
             ;;
-        "USER_APPROVE_LOWERCASE")
-            [ -z "$USER_APPROVE_LOWERCASE" ] && USER_APPROVE_LOWERCASE=$(get_user_approve_lowercase)
-            echo "$USER_APPROVE_LOWERCASE"
+        "USER_SKIP_QG_LOWERCASE")
+            [ -z "$USER_SKIP_QG_LOWERCASE" ] && USER_SKIP_QG_LOWERCASE=$(get_user_skip_qg_lowercase)
+            echo "$USER_SKIP_QG_LOWERCASE"
             ;;
-        "USER_APPROVE_MIXED")
-            [ -z "$USER_APPROVE_MIXED" ] && USER_APPROVE_MIXED=$(get_user_approve_mixed)
-            echo "$USER_APPROVE_MIXED"
+        "USER_SKIP_QG_MIXED")
+            [ -z "$USER_SKIP_QG_MIXED" ] && USER_SKIP_QG_MIXED=$(get_user_skip_qg_mixed)
+            echo "$USER_SKIP_QG_MIXED"
             ;;
-        "USER_APPROVE_IN_CONTEXT")
-            [ -z "$USER_APPROVE_IN_CONTEXT" ] && USER_APPROVE_IN_CONTEXT=$(get_user_approve_in_context)
-            echo "$USER_APPROVE_IN_CONTEXT"
+        "USER_SKIP_QG_IN_CONTEXT")
+            [ -z "$USER_SKIP_QG_IN_CONTEXT" ] && USER_SKIP_QG_IN_CONTEXT=$(get_user_skip_qg_in_context)
+            echo "$USER_SKIP_QG_IN_CONTEXT"
             ;;
-        "USER_DO_NOT_APPROVE")
-            [ -z "$USER_DO_NOT_APPROVE" ] && USER_DO_NOT_APPROVE=$(get_user_do_not_approve)
-            echo "$USER_DO_NOT_APPROVE"
+        "USER_NOT_SKIP_QG")
+            [ -z "$USER_NOT_SKIP_QG" ] && USER_NOT_SKIP_QG=$(get_user_not_skip_qg)
+            echo "$USER_NOT_SKIP_QG"
             ;;
         "USER_LGTM")
             [ -z "$USER_LGTM" ] && USER_LGTM=$(get_user_lgtm)

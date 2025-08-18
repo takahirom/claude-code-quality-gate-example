@@ -90,10 +90,10 @@ get_quality_result() {
         fi
     fi
     
-    # Check for user APPROVE message (optimized)
-    local user_approve_line=0
-    local user_approve
-    user_approve=$($REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
+    # Check for user SKIP QG message (optimized)
+    local user_skip_qg_line=0
+    local user_skip_qg
+    user_skip_qg=$($REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
         # Quick pre-check to avoid jq calls on non-user lines
         if [[ "$line" == *'"type":"user"'* ]]; then
             local json_data
@@ -102,29 +102,28 @@ get_quality_result() {
             local content
             content=$(extract_user_content "$json_data")
             
-            # Check for explicit APPROVE token (case-insensitive, trimmed)
-            # This prevents false positives like "I do not approve"
-            if [[ -n "$content" ]] && echo "$content" | grep -qiE '^[[:space:]]*APPROVE[[:space:]]*$'; then
+            # Check for explicit SKIP QG token (case-insensitive, trimmed)
+            if [[ -n "$content" ]] && echo "$content" | grep -qiE '^[[:space:]]*SKIP[[:space:]]+QG[[:space:]]*$'; then
                 echo "$line" | cut -f1
                 break
             fi
         fi
     done | head -1)
     
-    if [[ -n "$user_approve" ]]; then
-        user_approve_line=$((total_lines - user_approve + 1))
+    if [[ -n "$user_skip_qg" ]]; then
+        user_skip_qg_line=$((total_lines - user_skip_qg + 1))
         
-        # User APPROVE is valid if: no Final Result OR it comes after Final Result
-        if [[ -z "$last_result" ]] || [[ $user_approve_line -gt $last_result_line ]]; then
-            # Check for stale approval (edits after user APPROVE)
-            if has_edits_after_line "$transcript_path" "$user_approve_line"; then
-                return 2  # Stale approval
+        # User SKIP QG is valid if: no Final Result OR it comes after Final Result
+        if [[ -z "$last_result" ]] || [[ $user_skip_qg_line -gt $last_result_line ]]; then
+            # Check for stale skip (edits after user SKIP QG)
+            if has_edits_after_line "$transcript_path" "$user_skip_qg_line"; then
+                return 2  # Stale skip
             fi
-            return 0  # User APPROVED
+            return 0  # User skipped QG
         fi
     fi
     
-    # No Final Result found and no user APPROVE
+    # No Final Result found and no user SKIP QG
     if [[ -z "$last_result" ]]; then
         # Check if any edits have been made in the session
         if ! jq -r 'select(.message.content[]?.name) | .message.content[]?.name' "$transcript_path" 2>/dev/null | \

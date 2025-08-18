@@ -1,9 +1,9 @@
 #!/bin/bash
-# Test for user APPROVE functionality
-# Tests that user can manually approve quality gate
+# Test for user SKIP QG functionality
+# Tests that user can manually skip quality gate
 set -uo pipefail
 
-echo "=== User APPROVE Test ==="
+echo "=== User SKIP QG Test ==="
 
 # Script directory detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -65,19 +65,19 @@ run_test() {
     fi
 }
 
-# Test 1: User types "APPROVE" - should be approved
+# Test 1: User types "SKIP QG" - should be approved
 test_user_approve_simple() {
-    echo "Test: User types APPROVE"
+    echo "Test: User types SKIP QG"
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
-    get_data "USER_APPROVE" >> "$TEST_TRANSCRIPT"
+    get_data "USER_SKIP_QG" >> "$TEST_TRANSCRIPT"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "User APPROVE" "0" "$exit_code" "$stderr_output"
+    run_test "User SKIP QG" "0" "$exit_code" "$stderr_output"
 }
 
 # Test 2: User types "approve" (lowercase) - should be approved
@@ -86,7 +86,7 @@ test_user_approve_lowercase() {
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
-    get_data "USER_APPROVE_LOWERCASE" >> "$TEST_TRANSCRIPT"
+    get_data "USER_SKIP_QG_LOWERCASE" >> "$TEST_TRANSCRIPT"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
@@ -101,7 +101,7 @@ test_user_approve_mixed_case() {
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
-    get_data "USER_APPROVE_MIXED" >> "$TEST_TRANSCRIPT"
+    get_data "USER_SKIP_QG_MIXED" >> "$TEST_TRANSCRIPT"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
@@ -110,13 +110,13 @@ test_user_approve_mixed_case() {
     run_test "User Approve (mixed case)" "0" "$exit_code" "$stderr_output"
 }
 
-# Test 4: User APPROVE then edit (stale) - should trigger quality gate
+# Test 4: User SKIP QG then edit (stale) - should trigger quality gate
 test_user_approve_then_edit() {
-    echo "Test: User APPROVE then edit (stale)"
+    echo "Test: User SKIP QG then edit (stale)"
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
-    get_data "USER_APPROVE" >> "$TEST_TRANSCRIPT"
+    get_data "USER_SKIP_QG" >> "$TEST_TRANSCRIPT"
     get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
     # Add another edit after approval
     get_data "WRITE_TOOL_USE" >> "$TEST_TRANSCRIPT" 2>/dev/null || {
@@ -127,22 +127,22 @@ test_user_approve_then_edit() {
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "User APPROVE then edit (stale)" "2" "$exit_code" "$stderr_output"
+    run_test "User SKIP QG then edit (stale)" "2" "$exit_code" "$stderr_output"
 }
 
-# Test 5: User message with APPROVE in context - should be approved
+# Test 5: User message with SKIP QG in context - should be approved
 test_user_approve_in_context() {
-    echo "Test: User says 'please APPROVE this change'"
+    echo "Test: User says 'please SKIP QG this change'"
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
-    get_data "USER_APPROVE_IN_CONTEXT" >> "$TEST_TRANSCRIPT"
+    get_data "USER_SKIP_QG_IN_CONTEXT" >> "$TEST_TRANSCRIPT"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "User APPROVE in context" "2" "$exit_code" "$stderr_output"  # Now fails with stricter regex
+    run_test "User SKIP QG in context" "2" "$exit_code" "$stderr_output"  # Now fails with stricter regex
 }
 
 # Test 6: User types something else - should trigger quality gate
@@ -157,12 +157,12 @@ test_user_no_approve() {
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "User no APPROVE" "2" "$exit_code" "$stderr_output"
+    run_test "User no SKIP QG" "2" "$exit_code" "$stderr_output"
 }
 
-# Test 7: Multiple user messages, last one is APPROVE - should be approved
+# Test 7: Multiple user messages, last one is SKIP QG - should be approved
 test_multiple_messages_last_approve() {
-    echo "Test: Multiple user messages, last is APPROVE"
+    echo "Test: Multiple user messages, last is SKIP QG"
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
@@ -170,29 +170,29 @@ test_multiple_messages_last_approve() {
     get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
-    get_data "USER_APPROVE" >> "$TEST_TRANSCRIPT"
+    get_data "USER_SKIP_QG" >> "$TEST_TRANSCRIPT"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "Multiple messages, last APPROVE" "0" "$exit_code" "$stderr_output"
+    run_test "Multiple messages, last SKIP QG" "0" "$exit_code" "$stderr_output"
 }
 
-# Test 8: User APPROVE overrides previous REJECTED - should be approved
+# Test 8: User SKIP QG overrides previous REJECTED - should be approved
 test_user_approve_overrides_rejected() {
-    echo "Test: User APPROVE overrides REJECTED"
+    echo "Test: User SKIP QG overrides REJECTED"
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
     get_data "REJECT_RESULT" >> "$TEST_TRANSCRIPT"
-    get_data "USER_APPROVE" >> "$TEST_TRANSCRIPT"  # Uses plain "APPROVE"
+    get_data "USER_SKIP_QG" >> "$TEST_TRANSCRIPT"  # Uses plain "SKIP QG"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "User APPROVE overrides REJECTED" "0" "$exit_code" "$stderr_output"
+    run_test "User SKIP QG overrides REJECTED" "0" "$exit_code" "$stderr_output"
 }
 
 # Test 9: Empty user message - should not be approved
@@ -213,22 +213,22 @@ test_empty_user_message() {
 
 # Test 10: User types "I do not approve" - should NOT be approved
 test_user_do_not_approve() {
-    echo "Test: User types 'I do not approve'"
+    echo "Test: User types 'I will not skip qg'"
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
-    get_data "USER_DO_NOT_APPROVE" >> "$TEST_TRANSCRIPT"
+    get_data "USER_NOT_SKIP_QG" >> "$TEST_TRANSCRIPT"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "User 'I do not approve'" "2" "$exit_code" "$stderr_output"
+    run_test "User 'I will not skip qg'" "2" "$exit_code" "$stderr_output"
 }
 
 # Test 11: User types "LGTM" (common approval abbreviation) - should NOT be approved (strict)
 test_user_lgtm_not_approved() {
-    echo "Test: User types LGTM (not APPROVE)"
+    echo "Test: User types LGTM (not SKIP QG)"
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
@@ -238,27 +238,27 @@ test_user_lgtm_not_approved() {
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "User LGTM (not APPROVE)" "2" "$exit_code" "$stderr_output"
+    run_test "User LGTM (not SKIP QG)" "2" "$exit_code" "$stderr_output"
 }
 
-# Test 11: Tool result with "APPROVED" should not be detected as user APPROVE
+# Test 11: Tool result with "SKIP QGD" should not be detected as user SKIP QG
 test_tool_result_approved_not_user_approve() {
-    echo "Test: Tool result with APPROVED (not user APPROVE)"
+    echo "Test: Tool result with SKIP QGD (not user SKIP QG)"
     : > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
-    # Add tool result with APPROVED text
-    echo '{"type":"user","message":{"role":"user","content":[{"tool_use_id":"toolu_test","type":"tool_result","content":"Result code: 0\nAPPROVED"}]}}' >> "$TEST_TRANSCRIPT"
+    # Add tool result with SKIP QGD text
+    echo '{"type":"user","message":{"role":"user","content":[{"tool_use_id":"toolu_test","type":"tool_result","content":"Result code: 0\nSKIP QGD"}]}}' >> "$TEST_TRANSCRIPT"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "Tool result APPROVED (not user)" "2" "$exit_code" "$stderr_output"
+    run_test "Tool result SKIP QGD (not user)" "2" "$exit_code" "$stderr_output"
 }
 
 # Execute all tests
-echo "Starting user APPROVE tests..."
+echo "Starting user SKIP QG tests..."
 echo
 
 # Execute all test functions automatically
