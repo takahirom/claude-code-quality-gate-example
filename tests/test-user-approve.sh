@@ -226,6 +226,22 @@ test_user_lgtm_not_approved() {
     run_test "User LGTM (not APPROVE)" "2" "$exit_code" "$stderr_output"
 }
 
+# Test 11: Tool result with "APPROVED" should not be detected as user APPROVE
+test_tool_result_approved_not_user_approve() {
+    echo "Test: Tool result with APPROVED (not user APPROVE)"
+    : > "$TEST_TRANSCRIPT"
+    get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
+    get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
+    # Add tool result with APPROVED text
+    echo '{"type":"user","message":{"role":"user","content":[{"tool_use_id":"toolu_test","type":"tool_result","content":"Result code: 0\nAPPROVED"}]}}' >> "$TEST_TRANSCRIPT"
+    
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    
+    run_test "Tool result APPROVED (not user)" "2" "$exit_code" "$stderr_output"
+}
+
 # Execute all tests
 echo "Starting user APPROVE tests..."
 echo

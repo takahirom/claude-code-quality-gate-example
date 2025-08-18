@@ -94,10 +94,12 @@ get_quality_result() {
     local user_approve_line=0
     local user_approve
     user_approve=$($REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
-        if echo "$line" | cut -f2- | jq -e '.type == "user"' >/dev/null 2>&1; then
+        # Check if it's a user message (not tool_result)
+        if echo "$line" | cut -f2- | jq -e '.type == "user" and (.message.content | type == "string")' >/dev/null 2>&1; then
             local content
             content=$(echo "$line" | cut -f2- | jq -r '.message.content' 2>/dev/null)
-            if echo "$content" | grep -qi "approve"; then
+            # Match whole word "approve" (case-insensitive) but not "approved"
+            if echo "$content" | grep -qiE '\bapprove\b'; then
                 echo "$line" | cut -f1
                 break
             fi
