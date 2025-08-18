@@ -35,6 +35,16 @@ check_dependencies() {
     done
 }
 
+# Helper: Check for edits after given line number
+has_edits_after_line() {
+    local transcript_path="$1"
+    local line_number="$2"
+    
+    tail -n +$((line_number + 1)) "$transcript_path" | \
+        jq -r 'select(.message.content[]?.name) | .message.content[]?.name' 2>/dev/null | \
+        grep -qE "$QUALITY_GATE_EDIT_TOOLS_PATTERN"
+}
+
 # Get the most recent quality-gate-keeper result from transcript
 # Returns: 0 if APPROVED, 1 if REJECTED, 2 if no result found
 get_quality_result() {
@@ -47,11 +57,13 @@ get_quality_result() {
     # Find the most recent Final Result using reverse search (performance optimized)
     local last_result=""
     local last_result_line=0
-    local total_lines=$(wc -l < "$transcript_path")
+    local total_lines
+    total_lines=$(wc -l < "$transcript_path")
     
     # Find most recent Final Result from sidechain or toolUseResult only
     # This prevents interference from ongoing Bash commands containing "Final Result:"
-    local result_info=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result:" | while read -r line; do
+    local result_info
+    result_info=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result:" | while read -r line; do
         # Only check jq for lines that contain Final Result
         if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
             echo "$line"
@@ -60,22 +72,52 @@ get_quality_result() {
     done | head -1)
     
     if [[ -n "$result_info" ]]; then
-        local reverse_line_num=$(echo "$result_info" | cut -f1)
-        local line=$(echo "$result_info" | cut -f2-)
+        local reverse_line_num
+        reverse_line_num=$(echo "$result_info" | cut -f1)
+        local line
+        line=$(echo "$result_info" | cut -f2-)
         last_result_line=$((total_lines - reverse_line_num + 1))
         
         # Determine result type and extract content
         if echo "$line" | cut -f2- | jq -e '.isSidechain == true' >/dev/null 2>&1; then
             last_result=$(extract_message_content "$line")
         elif echo "$line" | cut -f2- | jq -e '.toolUseResult | type == "string"' >/dev/null 2>&1; then
-            local tool_result_content=$(echo "$line" | jq -r '.toolUseResult' 2>/dev/null)
+            local tool_result_content
+            tool_result_content=$(echo "$line" | jq -r '.toolUseResult' 2>/dev/null)
             if [[ -n "$tool_result_content" ]] && echo "$tool_result_content" | grep -q "Final Result:"; then
                 last_result="$tool_result_content"
             fi
         fi
     fi
     
-    # No Final Result found
+    # Check for user APPROVE message
+    local user_approve_line=0
+    local user_approve
+    user_approve=$($REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
+        if echo "$line" | cut -f2- | jq -e '.type == "user"' >/dev/null 2>&1; then
+            local content
+            content=$(echo "$line" | cut -f2- | jq -r '.message.content' 2>/dev/null)
+            if echo "$content" | grep -qi "approve"; then
+                echo "$line" | cut -f1
+                break
+            fi
+        fi
+    done | head -1)
+    
+    if [[ -n "$user_approve" ]]; then
+        user_approve_line=$((total_lines - user_approve + 1))
+        
+        # User APPROVE is valid if: no Final Result OR it comes after Final Result
+        if [[ -z "$last_result" ]] || [[ $user_approve_line -gt $last_result_line ]]; then
+            # Check for stale approval (edits after user APPROVE)
+            if has_edits_after_line "$transcript_path" "$user_approve_line"; then
+                return 2  # Stale approval
+            fi
+            return 0  # User APPROVED
+        fi
+    fi
+    
+    # No Final Result found and no user APPROVE
     if [[ -z "$last_result" ]]; then
         # Check if any edits have been made in the session
         if ! jq -r 'select(.message.content[]?.name) | .message.content[]?.name' "$transcript_path" 2>/dev/null | \
@@ -89,9 +131,7 @@ get_quality_result() {
     # Check result status
     if echo "$last_result" | grep -q "✅ APPROVED"; then
         # Check for file edits after approval
-        if tail -n +$((last_result_line + 1)) "$transcript_path" | \
-           jq -r 'select(.message.content[]?.name) | .message.content[]?.name' 2>/dev/null | \
-           grep -qE "$QUALITY_GATE_EDIT_TOOLS_PATTERN"; then
+        if has_edits_after_line "$transcript_path" "$last_result_line"; then
             return 2  # Stale approval
         fi
         return 0  # APPROVED
@@ -122,7 +162,8 @@ count_attempts_since_last_reset_point() {
     # Find last APPROVED result and user input using reverse search
     # Find last APPROVED result line number using reverse search
     local last_approved_line=0
-    local approved_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result: ✅ APPROVED" | while read -r line; do
+    local approved_result
+    approved_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result: ✅ APPROVED" | while read -r line; do
         if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
             echo "$line" | cut -f1  # Return line number
             break
@@ -130,14 +171,17 @@ count_attempts_since_last_reset_point() {
     done | head -1)
     
     if [[ -n "$approved_result" ]]; then
-        local total_lines=$(wc -l < "$transcript_path")
+        local total_lines
+        total_lines=$(wc -l < "$transcript_path")
         last_approved_line=$((total_lines - approved_result + 1))
     fi
     
     # Find last user input line number using reverse search 
     local last_user_input_line=0
-    local user_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep '"type":"user"' | while read -r line; do
-        local content=$(echo "$line" | cut -f2- | jq -r '.message.content[]?.text // empty' 2>/dev/null)
+    local user_result
+    user_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep '"type":"user"' | while read -r line; do
+        local content
+        content=$(echo "$line" | cut -f2- | jq -r '.message.content[]?.text // empty' 2>/dev/null)
         if [[ -n "$content" ]] && ! echo "$content" | grep -q "Quality gate blocking session completion"; then
             echo "$line" | cut -f1  # Return line number
             break
@@ -145,7 +189,8 @@ count_attempts_since_last_reset_point() {
     done | head -1)
     
     if [[ -n "$user_result" ]]; then
-        local total_lines=$(wc -l < "$transcript_path")
+        local total_lines
+        total_lines=$(wc -l < "$transcript_path")
         last_user_input_line=$((total_lines - user_result + 1))
     fi
     
@@ -171,7 +216,8 @@ count_attempts_since_last_reset_point() {
     fi
     
     # Count Stop hook messages - use simple grep approach (most reliable)
-    local raw_count=$(grep -c "Quality gate blocking session completion" "$temp_transcript" 2>/dev/null || echo 0)
+    local raw_count
+    raw_count=$(grep -c "Quality gate blocking session completion" "$temp_transcript" 2>/dev/null || echo 0)
     attempt_count=$(echo "$raw_count" | head -1 | tr -d ' \n\r')
     
     rm -f "$temp_transcript"
