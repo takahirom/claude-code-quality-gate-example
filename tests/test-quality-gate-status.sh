@@ -125,7 +125,7 @@ setup_stale_approval() {
         echo "ERROR: Failed to get APPROVE_RESULT data for stale approval"
         return 1
     fi
-    echo '{"message":{"content":[{"name":"Edit"}]}}' >> test_transcript.jsonl
+    echo '{"message":{"content":[{"type":"tool_use","name":"Edit"}]}}' >> test_transcript.jsonl
 }
 
 # Additional setup functions for git-related tests

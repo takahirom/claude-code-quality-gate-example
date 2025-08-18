@@ -67,12 +67,7 @@ get_user_input() {
   "type": "user",
   "message": {
     "role": "user",
-    "content": [
-      {
-        "type": "text",
-        "text": "Please fix the code"
-      }
-    ]
+    "content": "Please fix the code"
   },
   "uuid": "'$(generate_uuid)'",
   "timestamp": "'$BASE_TIMESTAMP'"
@@ -301,6 +296,141 @@ to_compact_json '{
 }'
 }
 
+# User SKIP QG variations
+get_user_skip_qg() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external",
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "SKIP QG"
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'"
+}'
+}
+
+get_user_skip_qg_lowercase() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external",
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "skip qg"
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'"
+}'
+}
+
+get_user_skip_qg_mixed() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external",
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "Skip QG"
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'"
+}'
+}
+
+get_user_skip_qg_in_context() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external",
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "please SKIP QG for this change"
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'"
+}'
+}
+
+get_user_lgtm() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external",
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "LGTM"
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'"
+}'
+}
+
+get_user_looks_good() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external",
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "looks good to me"
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'"
+}'
+}
+
+# 11. User message saying "I will not skip qg" - should NOT match
+get_user_not_skip_qg() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external",
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "I will not skip qg"
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'"
+}'
+}
+
 # Initialize variables using lazy loading
 ASSISTANT_RESPONSE=""
 USER_INPUT=""
@@ -311,6 +441,13 @@ APPROVE_RESULT=""
 TOOL_USE_RESULT_REJECT=""
 TOOL_USE_RESULT_APPROVE=""
 EDIT_TOOL_FALSE_POSITIVE=""
+USER_SKIP_QG=""
+USER_SKIP_QG_LOWERCASE=""
+USER_SKIP_QG_MIXED=""
+USER_SKIP_QG_IN_CONTEXT=""
+USER_NOT_SKIP_QG=""
+USER_LGTM=""
+USER_LOOKS_GOOD=""
 
 # Lazy loading functions
 get_data() {
@@ -362,6 +499,34 @@ get_data() {
             ;;
         "MCP_SERENA_REPLACE")
             echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__serena__replace_regex","input":{"relative_path":"test.txt","regex":"old","repl":"new"}}]}}'
+            ;;
+        "USER_SKIP_QG")
+            [ -z "$USER_SKIP_QG" ] && USER_SKIP_QG=$(get_user_skip_qg)
+            echo "$USER_SKIP_QG"
+            ;;
+        "USER_SKIP_QG_LOWERCASE")
+            [ -z "$USER_SKIP_QG_LOWERCASE" ] && USER_SKIP_QG_LOWERCASE=$(get_user_skip_qg_lowercase)
+            echo "$USER_SKIP_QG_LOWERCASE"
+            ;;
+        "USER_SKIP_QG_MIXED")
+            [ -z "$USER_SKIP_QG_MIXED" ] && USER_SKIP_QG_MIXED=$(get_user_skip_qg_mixed)
+            echo "$USER_SKIP_QG_MIXED"
+            ;;
+        "USER_SKIP_QG_IN_CONTEXT")
+            [ -z "$USER_SKIP_QG_IN_CONTEXT" ] && USER_SKIP_QG_IN_CONTEXT=$(get_user_skip_qg_in_context)
+            echo "$USER_SKIP_QG_IN_CONTEXT"
+            ;;
+        "USER_NOT_SKIP_QG")
+            [ -z "$USER_NOT_SKIP_QG" ] && USER_NOT_SKIP_QG=$(get_user_not_skip_qg)
+            echo "$USER_NOT_SKIP_QG"
+            ;;
+        "USER_LGTM")
+            [ -z "$USER_LGTM" ] && USER_LGTM=$(get_user_lgtm)
+            echo "$USER_LGTM"
+            ;;
+        "USER_LOOKS_GOOD")
+            [ -z "$USER_LOOKS_GOOD" ] && USER_LOOKS_GOOD=$(get_user_looks_good)
+            echo "$USER_LOOKS_GOOD"
             ;;
         *)
             echo "Unknown data type: $1" >&2

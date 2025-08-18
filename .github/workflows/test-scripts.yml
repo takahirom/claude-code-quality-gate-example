@@ -57,6 +57,10 @@ jobs:
       run: ./tests/test-edit-tool.sh
       if: always()
     
+    - name: Run user approve tests
+      run: ./tests/test-user-approve.sh
+      if: always()
+    
     - name: Test script dependencies
       run: |
         echo "Checking script dependencies..."
