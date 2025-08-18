@@ -41,8 +41,12 @@ has_edits_after_line() {
     local line_number="$2"
     
     tail -n +$((line_number + 1)) "$transcript_path" | \
-        jq -r 'select(.message.content[]?.name) | .message.content[]?.name' 2>/dev/null | \
-        grep -qE "$QUALITY_GATE_EDIT_TOOLS_PATTERN"
+        jq -r '
+          select((.message.content | type) == "array")               # only arrays
+          | .message.content[]
+          | select(.type == "tool_use" and (.name // empty) != "")   # only tool_use with a name
+          | .name
+        ' 2>/dev/null | grep -qE "$QUALITY_GATE_EDIT_TOOLS_PATTERN"
 }
 
 # Get the most recent quality-gate-keeper result from transcript
@@ -79,9 +83,9 @@ get_quality_result() {
         last_result_line=$((total_lines - reverse_line_num + 1))
         
         # Determine result type and extract content
-        if echo "$line" | cut -f2- | jq -e '.isSidechain == true' >/dev/null 2>&1; then
+        if echo "$line" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
             last_result=$(extract_message_content "$line")
-        elif echo "$line" | cut -f2- | jq -e '.toolUseResult | type == "string"' >/dev/null 2>&1; then
+        elif echo "$line" | jq -e '.toolUseResult | type == "string"' >/dev/null 2>&1; then
             local tool_result_content
             tool_result_content=$(echo "$line" | jq -r '.toolUseResult' 2>/dev/null)
             if [[ -n "$tool_result_content" ]] && echo "$tool_result_content" | grep -q "Final Result:"; then
@@ -165,10 +169,18 @@ extract_user_content() {
 }
 
 # Helper function to extract content from transcript line (deprecated - use extract_user_content)
-# Returns extracted content or empty string
+# Returns extracted content or empty string; supports string and array forms
 extract_message_content() {
     local line="$1"
-    echo "$line" | jq -r '.message.content[]?.text // empty' 2>/dev/null | tr '\n' ' '
+    echo "$line" | jq -r '
+        if (.message.content | type) == "string" then
+            .message.content
+        elif (.message.content | type) == "array" then
+            .message.content[] | select(.type == "text") | .text // empty
+        else
+            empty
+        end
+    ' 2>/dev/null | tr '\n' ' '
 }
 
 # Count attempts since last reset point (approval or user input) in transcript
