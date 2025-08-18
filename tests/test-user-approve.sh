@@ -142,7 +142,7 @@ test_user_approve_in_context() {
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
     
-    run_test "User APPROVE in context" "0" "$exit_code" "$stderr_output"
+    run_test "User APPROVE in context" "2" "$exit_code" "$stderr_output"  # Now fails with stricter regex
 }
 
 # Test 6: User types something else - should trigger quality gate
@@ -186,7 +186,7 @@ test_user_approve_overrides_rejected() {
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
     get_data "REJECT_RESULT" >> "$TEST_TRANSCRIPT"
-    get_data "USER_APPROVE_IN_CONTEXT" >> "$TEST_TRANSCRIPT"  # Uses "please APPROVE this change" which contains APPROVE
+    get_data "USER_APPROVE" >> "$TEST_TRANSCRIPT"  # Uses plain "APPROVE"
     
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
@@ -211,7 +211,22 @@ test_empty_user_message() {
     run_test "Empty user message" "2" "$exit_code" "$stderr_output"
 }
 
-# Test 10: User types "LGTM" (common approval abbreviation) - should NOT be approved (strict)
+# Test 10: User types "I do not approve" - should NOT be approved
+test_user_do_not_approve() {
+    echo "Test: User types 'I do not approve'"
+    : > "$TEST_TRANSCRIPT"
+    get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
+    get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
+    get_data "USER_DO_NOT_APPROVE" >> "$TEST_TRANSCRIPT"
+    
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    
+    run_test "User 'I do not approve'" "2" "$exit_code" "$stderr_output"
+}
+
+# Test 11: User types "LGTM" (common approval abbreviation) - should NOT be approved (strict)
 test_user_lgtm_not_approved() {
     echo "Test: User types LGTM (not APPROVE)"
     : > "$TEST_TRANSCRIPT"

@@ -411,6 +411,26 @@ get_user_looks_good() {
 }'
 }
 
+# 11. User message saying "I do not approve" - should NOT match
+get_user_do_not_approve() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external",
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": "I do not approve"
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'"
+}'
+}
+
 # Initialize variables using lazy loading
 ASSISTANT_RESPONSE=""
 USER_INPUT=""
@@ -425,6 +445,7 @@ USER_APPROVE=""
 USER_APPROVE_LOWERCASE=""
 USER_APPROVE_MIXED=""
 USER_APPROVE_IN_CONTEXT=""
+USER_DO_NOT_APPROVE=""
 USER_LGTM=""
 USER_LOOKS_GOOD=""
 
@@ -494,6 +515,10 @@ get_data() {
         "USER_APPROVE_IN_CONTEXT")
             [ -z "$USER_APPROVE_IN_CONTEXT" ] && USER_APPROVE_IN_CONTEXT=$(get_user_approve_in_context)
             echo "$USER_APPROVE_IN_CONTEXT"
+            ;;
+        "USER_DO_NOT_APPROVE")
+            [ -z "$USER_DO_NOT_APPROVE" ] && USER_DO_NOT_APPROVE=$(get_user_do_not_approve)
+            echo "$USER_DO_NOT_APPROVE"
             ;;
         "USER_LGTM")
             [ -z "$USER_LGTM" ] && USER_LGTM=$(get_user_lgtm)

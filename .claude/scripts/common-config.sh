@@ -102,8 +102,9 @@ get_quality_result() {
             local content
             content=$(extract_user_content "$json_data")
             
-            # Check for approve
-            if [[ -n "$content" ]] && echo "$content" | grep -qiE '\bapprove\b'; then
+            # Check for explicit APPROVE token (case-insensitive, trimmed)
+            # This prevents false positives like "I do not approve"
+            if [[ -n "$content" ]] && echo "$content" | grep -qiE '^[[:space:]]*APPROVE[[:space:]]*$'; then
                 echo "$line" | cut -f1
                 break
             fi
