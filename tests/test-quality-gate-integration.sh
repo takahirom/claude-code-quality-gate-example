@@ -242,7 +242,7 @@ test_performance_large_transcript() {
     
     # Add many user messages (simulate real scenario with ~900 user messages)
     for i in {1..900}; do
-        echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"User message '$i'"}]},"uuid":"user-'$i'"}' >> "$large_transcript"
+        generate_user_message "User message $i" "user-$i" >> "$large_transcript"
         # Add some assistant responses periodically
         if (( i % 30 == 0 )); then
             get_data "ASSISTANT_RESPONSE" >> "$large_transcript"
@@ -251,7 +251,7 @@ test_performance_large_transcript() {
     
     # Add multiple "Final Result:" entries in various contexts
     for i in {1..30}; do
-        echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"grep \"Final Result:\" /tmp/test.jsonl","description":"Search for Final Result"}}]},"uuid":"bash-'$i'"}' >> "$large_transcript"
+        generate_bash_command 'grep "Final Result:" /tmp/test.jsonl' "Search for Final Result" "bash-$i" >> "$large_transcript"
     done
     
     # Add actual Final Result at the end

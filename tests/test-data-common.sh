@@ -392,6 +392,20 @@ get_user_lgtm() {
 }'
 }
 
+# Parameterized generators for test data
+generate_user_message() {
+    local content="${1:-Test message}"
+    local uuid="${2:-user-$(generate_uuid)}"
+    echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"'"$content"'"}]},"uuid":"'"$uuid"'"}'
+}
+
+generate_bash_command() {
+    local command="${1:-echo test}"
+    local description="${2:-Test command}"
+    local uuid="${3:-bash-$(generate_uuid)}"
+    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"'"$command"'","description":"'"$description"'"}}]},"uuid":"'"$uuid"'"}'
+}
+
 get_user_looks_good() {
     to_compact_json '{
   "parentUuid": "'$(generate_uuid)'",

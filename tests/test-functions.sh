@@ -289,7 +289,7 @@ performance_regression_test() {
     # Add many user messages (simulate 900+ user messages)
     echo "Creating test file with ~900 user messages..."
     for i in {1..900}; do
-        echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"User message '$i'"}]},"uuid":"user-'$i'"}' >> "$regression_transcript"
+        generate_user_message "User message $i" "user-$i" >> "$regression_transcript"
         # Add some assistant responses
         if (( i % 30 == 0 )); then
             get_data "ASSISTANT_RESPONSE" >> "$regression_transcript"
@@ -298,7 +298,7 @@ performance_regression_test() {
     
     # Add some entries with "Final Result:" in various contexts
     for i in {1..30}; do
-        echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"grep \"Final Result:\" /tmp/test.jsonl","description":"Search for Final Result"}}]},"uuid":"bash-'$i'"}' >> "$regression_transcript"
+        generate_bash_command 'grep "Final Result:" /tmp/test.jsonl' "Search for Final Result" "bash-$i" >> "$regression_transcript"
     done
     
     # Add actual Final Result at the end
