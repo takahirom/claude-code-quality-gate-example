@@ -61,6 +61,10 @@ jobs:
       run: ./tests/test-user-approve.sh
       if: always()
     
+    - name: Run JSON escaping tests
+      run: ./tests/test-json-escaping.sh
+      if: always()
+    
     - name: Test script dependencies
       run: |
         echo "Checking script dependencies..."

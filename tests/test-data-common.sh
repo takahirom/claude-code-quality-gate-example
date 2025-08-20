@@ -396,14 +396,44 @@ get_user_lgtm() {
 generate_user_message() {
     local content="${1:-Test message}"
     local uuid="${2:-user-$(generate_uuid)}"
-    echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"'"$content"'"}]},"uuid":"'"$uuid"'"}'
+    # Comprehensive JSON escaping for all required characters
+    local esc_content=${content//\\/\\\\}  # Escape backslash first
+    esc_content=${esc_content//\"/\\\"}     # Escape double quote
+    esc_content=${esc_content//$'\n'/\\n}   # Escape newline
+    esc_content=${esc_content//$'\r'/\\r}   # Escape carriage return
+    esc_content=${esc_content//$'\t'/\\t}   # Escape tab
+    esc_content=${esc_content//$'\f'/\\f}   # Escape form feed
+    esc_content=${esc_content//$'\b'/\\b}   # Escape backspace
+    
+    local esc_uuid=${uuid//\\/\\\\}
+    esc_uuid=${esc_uuid//\"/\\\"}
+    echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"'"$esc_content"'"}]},"uuid":"'"$esc_uuid"'"}'
 }
 
 generate_bash_command() {
     local command="${1:-echo test}"
     local description="${2:-Test command}"
     local uuid="${3:-bash-$(generate_uuid)}"
-    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"'"$command"'","description":"'"$description"'"}}]},"uuid":"'"$uuid"'"}'
+    # Comprehensive JSON escaping for all required characters
+    local esc_cmd=${command//\\/\\\\}      # Escape backslash first
+    esc_cmd=${esc_cmd//\"/\\\"}            # Escape double quote
+    esc_cmd=${esc_cmd//$'\n'/\\n}          # Escape newline
+    esc_cmd=${esc_cmd//$'\r'/\\r}          # Escape carriage return
+    esc_cmd=${esc_cmd//$'\t'/\\t}          # Escape tab
+    esc_cmd=${esc_cmd//$'\f'/\\f}          # Escape form feed
+    esc_cmd=${esc_cmd//$'\b'/\\b}          # Escape backspace
+    
+    local esc_desc=${description//\\/\\\\}
+    esc_desc=${esc_desc//\"/\\\"}
+    esc_desc=${esc_desc//$'\n'/\\n}
+    esc_desc=${esc_desc//$'\r'/\\r}
+    esc_desc=${esc_desc//$'\t'/\\t}
+    esc_desc=${esc_desc//$'\f'/\\f}
+    esc_desc=${esc_desc//$'\b'/\\b}
+    
+    local esc_uuid=${uuid//\\/\\\\}
+    esc_uuid=${esc_uuid//\"/\\\"}
+    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"'"$esc_cmd"'","description":"'"$esc_desc"'"}}]},"uuid":"'"$esc_uuid"'"}'
 }
 
 get_user_looks_good() {
