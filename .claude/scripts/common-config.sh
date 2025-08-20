@@ -100,9 +100,9 @@ get_quality_result() {
     local user_skip_qg
     # Optimized: Pre-filter user messages and check for SKIP QG pattern
     # User messages use string format: "content": "SKIP QG" or "content":"SKIP QG"
-    user_skip_qg=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep '"type":"user"' | head -100 | while read -r line; do
+    user_skip_qg=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep -E '"type"\s*:\s*"user"' | head -100 | while read -r line; do
         # Fast check: look for SKIP QG in content field (handles with/without spaces)
-        if echo "$line" | grep -qiE '"content"[[:space:]]*:[[:space:]]*"[[:space:]]*SKIP[[:space:]]+QG[[:space:]]*"'; then
+        if echo "$line" | grep -qiE '"content"\s*:\s*"\s*SKIP\s+QG\s*"'; then
             # Found potential match, verify with jq (only for matches)
             local json_data
             json_data=$(echo "$line" | cut -f2-)
