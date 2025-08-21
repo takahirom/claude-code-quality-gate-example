@@ -260,7 +260,7 @@ performance_test() {
     local result=$?
     local end_time=$(date +%s.%N)
     local duration=$(echo "$end_time - $start_time" | bc)
-    echo "get_quality_result: Processed 1001 entries in ${duration}s"
+    echo "get_quality_result: Processed 51 entries in ${duration}s"
     run_test "Large transcript processing" "0" "$result"
     
     # Test count_attempts_since_last_reset_point performance
@@ -269,10 +269,70 @@ performance_test() {
     local count_result=$? 
     end_time=$(date +%s.%N)
     duration=$(echo "$end_time - $start_time" | bc)
-    echo "count_attempts_since_last_reset_point: Processed 1001 entries in ${duration}s"
+    echo "count_attempts_since_last_reset_point: Processed 51 entries in ${duration}s"
     run_test "Large transcript attempt counting" "1" "$count_result"  # Should continue (return 1)
     
     rm -f "$large_transcript"
+}
+
+# Performance regression test - reproduces real world slowdown
+performance_regression_test() {
+    echo "Performance Regression Test: Large file with many user messages"
+    local regression_transcript="/tmp/regression-test-transcript.jsonl"
+    
+    # Create transcript that reproduces the actual slowdown issue:
+    # - Many user messages (956 in real file)
+    # - Multiple "Final Result:" entries (34 in real file)
+    # This causes O(N) performance issue in SKIP QG search
+    echo "# Regression test transcript" > "$regression_transcript"
+    
+    # Add many user messages (simulate 900+ user messages)
+    echo "Creating test file with ~900 user messages..."
+    for i in {1..900}; do
+        generate_user_message "User message $i" "user-$i" >> "$regression_transcript"
+        # Add some assistant responses
+        if (( i % 30 == 0 )); then
+            get_data "ASSISTANT_RESPONSE" >> "$regression_transcript"
+        fi
+    done
+    
+    # Add some entries with "Final Result:" in various contexts
+    for i in {1..30}; do
+        generate_bash_command 'grep "Final Result:" /tmp/test.jsonl' "Search for Final Result" "bash-$i" >> "$regression_transcript"
+    done
+    
+    # Add actual Final Result at the end
+    get_data "APPROVE_RESULT" >> "$regression_transcript"
+    
+    local user_count=$(grep -c '"type":"user"' "$regression_transcript")
+    local final_result_count=$(grep -c "Final Result:" "$regression_transcript")
+    echo "Created test file with $user_count user messages and $final_result_count 'Final Result:' occurrences"
+    
+    # Test with timeout to catch performance issues
+    local start_time=$(date +%s.%N)
+    timeout 5 bash -c '
+        source "'"$(dirname "$0")"'/../.claude/scripts/common-config.sh"
+        get_quality_result "'"$regression_transcript"'"
+    '
+    local timeout_result=$?
+    local end_time=$(date +%s.%N)
+    local duration=$(echo "$end_time - $start_time" | bc)
+    
+    if [[ $timeout_result -eq 124 ]]; then
+        echo "❌ PERFORMANCE REGRESSION DETECTED: Function timed out after 5 seconds"
+        echo "   Processing $user_count user messages caused timeout in SKIP QG search"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    elif (( $(echo "$duration > 3" | bc -l) )); then
+        echo "⚠️  Performance warning: Function took ${duration}s (>3s threshold)"
+        echo "   Consider optimizing for files with many user messages"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    else
+        echo "✅ Performance regression test: PASSED (${duration}s)"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    
+    rm -f "$regression_transcript"
 }
 
 # Execute all tests
@@ -287,6 +347,7 @@ done
 # Optional performance test
 if command -v bc >/dev/null 2>&1; then
     performance_test
+    performance_regression_test
 else
     echo "Skipping performance test (bc not available)"
 fi

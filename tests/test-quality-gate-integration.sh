@@ -232,6 +232,63 @@ test_precommit_false_positives() {
     run_test "git status should not trigger" "0" "$exit_code" "$stderr_output"
 }
 
+# Performance test - ensure quality gate scripts handle large transcripts efficiently
+test_performance_large_transcript() {
+    echo "Performance test with large transcript (900+ user messages)"
+    
+    # Create large transcript similar to real-world scenario
+    local large_transcript="$TEST_DIR/large-transcript.jsonl"
+    echo "# Large test transcript" > "$large_transcript"
+    
+    # Add many user messages (simulate real scenario with ~900 user messages)
+    for i in {1..900}; do
+        generate_user_message "User message $i" "user-$i" >> "$large_transcript"
+        # Add some assistant responses periodically
+        if (( i % 30 == 0 )); then
+            get_data "ASSISTANT_RESPONSE" >> "$large_transcript"
+        fi
+    done
+    
+    # Add multiple "Final Result:" entries in various contexts
+    for i in {1..30}; do
+        generate_bash_command 'grep "Final Result:" /tmp/test.jsonl' "Search for Final Result" "bash-$i" >> "$large_transcript"
+    done
+    
+    # Add actual Final Result at the end
+    get_data "APPROVE_RESULT" >> "$large_transcript"
+    
+    local user_count=$(grep -c '"type":"user"' "$large_transcript")
+    local final_result_count=$(grep -c "Final Result:" "$large_transcript")
+    echo "  Created test file with $user_count user messages and $final_result_count 'Final Result:' occurrences"
+    
+    # Test quality-gate-stop.sh with timeout
+    input_json='{"transcript_path":"'$large_transcript'"}'
+    
+    # Use timeout to detect performance issues
+    local start_time=$(date +%s)
+    timeout 5 bash -c "echo '$input_json' | '$QUALITY_GATE_DIR/quality-gate-stop.sh' 2>&1 >/dev/null"
+    local timeout_exit=$?
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+    
+    if [[ $timeout_exit -eq 124 ]]; then
+        echo "❌ Performance test: FAILED (timed out after 5 seconds)"
+        echo "   Processing $user_count user messages caused timeout"
+        echo "   This indicates a performance regression in quality gate scripts"
+        ((FAILED_TESTS++))
+    elif [[ $duration -gt 3 ]]; then
+        echo "⚠️  Performance test: WARNING (took ${duration}s, >3s threshold)"
+        echo "   Consider optimizing for large transcript files"
+        ((FAILED_TESTS++))
+    else
+        echo "✅ Performance test: PASSED (completed in ${duration}s)"
+        ((PASSED_TESTS++))
+    fi
+    ((TOTAL_TESTS++))
+    
+    rm -f "$large_transcript"
+}
+
 # Execute all tests
 echo "Starting integration tests..."
 echo

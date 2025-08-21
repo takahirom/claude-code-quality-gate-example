@@ -66,8 +66,9 @@ get_quality_result() {
     
     # Find most recent Final Result from sidechain or toolUseResult only
     # This prevents interference from ongoing Bash commands containing "Final Result:"
+    # Optimized: Use head -10 to limit jq checks since Final Result is usually near the end
     local result_info
-    result_info=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result:" | while read -r line; do
+    result_info=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result:" | head -10 | while read -r line; do
         # Only check jq for lines that contain Final Result
         if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
             echo "$line"
@@ -94,19 +95,21 @@ get_quality_result() {
         fi
     fi
     
-    # Check for user SKIP QG message (optimized)
+    # Check for user SKIP QG message (highly optimized)
     local user_skip_qg_line=0
     local user_skip_qg
-    user_skip_qg=$($REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
-        # Quick pre-check to avoid jq calls on non-user lines
-        if [[ "$line" == *'"type":"user"'* ]]; then
+    # Optimized: Pre-filter user messages and check for SKIP QG pattern
+    # User messages use string format: "content": "SKIP QG" or "content":"SKIP QG"
+    user_skip_qg=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep -E '"type"\s*:\s*"user"' | head -100 | while read -r line; do
+        # Fast check: look for SKIP QG in content field (handles with/without spaces)
+        if echo "$line" | grep -qiE '"content"\s*:\s*"\s*SKIP\s+QG\s*"'; then
+            # Found potential match, verify with jq (only for matches)
             local json_data
             json_data=$(echo "$line" | cut -f2-)
-            # Use the helper function to extract content
             local content
             content=$(extract_user_content "$json_data")
             
-            # Check for explicit SKIP QG token (case-insensitive, trimmed)
+            # Double-check with proper extraction
             if [[ -n "$content" ]] && echo "$content" | grep -qiE '^[[:space:]]*SKIP[[:space:]]+QG[[:space:]]*$'; then
                 echo "$line" | cut -f1
                 break
