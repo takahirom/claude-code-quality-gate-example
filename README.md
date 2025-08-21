@@ -128,7 +128,7 @@ This validates the entire workflow from test creation to quality intervention.
 
 ## Key Features
 
-### Direct Verdict System
+### System Behavior
 The system uses quality-gate-keeper's direct output for decision making:
 
 1. **Direct Result Checking**: Parses transcript for `Final Result: ✅ APPROVED` or `Final Result: ❌ REJECTED`
