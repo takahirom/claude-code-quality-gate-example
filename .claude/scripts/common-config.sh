@@ -216,12 +216,26 @@ count_attempts_since_last_reset_point() {
     # Find last APPROVED result line number using reverse search
     local last_approved_line=0
     local approved_result
-    approved_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep -E "Final Result:.*✅.*APPROVED" | while read -r line; do
-        if echo "$line" | cut -f2- | jq -e '.isSidechain == true or .toolUseResult' >/dev/null 2>&1; then
-            echo "$line" | cut -f1  # Return line number
+    approved_result=$(
+      $REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
+        # Fast prefilter
+        if echo "$line" | grep -q "Final Result:"; then
+          json_data=$(echo "$line" | cut -f2-)
+          # Extract only from trusted locations
+          if echo "$json_data" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
+            content=$(extract_message_content "$json_data")
+          elif echo "$json_data" | jq -e '.toolUseResult' >/dev/null 2>&1; then
+            content=$(extract_tool_use_result_content "$json_data")
+          else
+            continue
+          fi
+          if [[ -n "$content" ]] && echo "$content" | grep -qE "Final Result:.*✅.*APPROVED"; then
+            echo "$line" | cut -f1
             break
+          fi
         fi
-    done | head -1)
+      done | head -1
+    )
     
     if [[ -n "$approved_result" ]]; then
         local total_lines
