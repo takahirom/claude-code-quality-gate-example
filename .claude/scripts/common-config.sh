@@ -181,10 +181,13 @@ extract_tool_use_result_content() {
         if (.toolUseResult | type) == "string" then
             .toolUseResult
         elif (.toolUseResult | type) == "object" then
-            .toolUseResult.content[]?.text // empty
+            .toolUseResult
+            | .content[]?
+            | select(.type == "text")
+            | .text // empty
         else
             empty
-        end' 2>/dev/null
+        end' 2>/dev/null | tr '\n' ' '
 }
 
 # Helper function to extract content from transcript line (deprecated - use extract_user_content)
