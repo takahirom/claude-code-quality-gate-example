@@ -257,16 +257,75 @@ get_tool_use_result_approve() {
       {
         "tool_use_id": "toolu_'$(generate_uuid)'",
         "type": "tool_result", 
-        "content": "Code quality analysis completed successfully.\n\n**Final Result: ✅ APPROVED**",
+        "content": [
+          {
+            "type": "text",
+            "text": "Code quality analysis completed successfully.\\n\\n## Final Result: ✅ **APPROVED** - Implementation meets all quality standards"
+          }
+        ],
         "is_error": false
       }
     ]
   },
   "uuid": "'$(generate_uuid)'",
   "timestamp": "'$BASE_TIMESTAMP'",
-  "toolUseResult": "Quality inspection passed. All standards met.\n\n**Final Result: ✅ APPROVED**"
+  "toolUseResult": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Quality inspection passed. All standards met.\\n\\n## Final Result: ✅ **APPROVED** - Implementation meets all quality standards"
+      }
+    ],
+    "totalDurationMs": 96818,
+    "totalTokens": 95363,
+    "totalToolUseCount": 11
+  }
 }'
 }
+
+# Create a version with toolUseResult in object format (like real transcript)
+get_tool_use_result_approve_object_format() {
+    to_compact_json '{
+  "parentUuid": "'$(generate_uuid)'",
+  "isSidechain": false,
+  "userType": "external", 
+  "cwd": "'$CWD'",
+  "sessionId": "'$SESSION_ID'",
+  "version": "'$VERSION'",
+  "gitBranch": "'$GIT_BRANCH'",
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": [
+      {
+        "tool_use_id": "toolu_'$(generate_uuid)'",
+        "type": "tool_result",
+        "content": [
+          {
+            "type": "text",
+            "text": "Quality inspection complete.\\n\\n**Final Result: ✅ APPROVED** - All quality standards met."
+          }
+        ],
+        "is_error": false
+      }
+    ]
+  },
+  "uuid": "'$(generate_uuid)'",
+  "timestamp": "'$BASE_TIMESTAMP'",
+  "toolUseResult": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Quality inspection complete.\\n\\n**Final Result: ✅ APPROVED** - All quality standards met."
+      }
+    ],
+    "totalDurationMs": 96818,
+    "totalTokens": 95363,
+    "totalToolUseCount": 11
+  }
+}'
+}
+
 
 # Function to generate Edit tool false positive test data
 get_edit_tool_false_positive() {
@@ -527,6 +586,9 @@ get_data() {
         "TOOL_USE_RESULT_APPROVE")
             [ -z "$TOOL_USE_RESULT_APPROVE" ] && TOOL_USE_RESULT_APPROVE=$(get_tool_use_result_approve)
             echo "$TOOL_USE_RESULT_APPROVE"
+            ;;
+        "TOOL_USE_RESULT_APPROVE_OBJECT_FORMAT")
+            echo "$(get_tool_use_result_approve_object_format)"
             ;;
         "EDIT_TOOL_FALSE_POSITIVE")
             [ -z "$EDIT_TOOL_FALSE_POSITIVE" ] && EDIT_TOOL_FALSE_POSITIVE=$(get_edit_tool_false_positive)
