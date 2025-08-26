@@ -70,7 +70,7 @@ get_quality_result() {
     local result_info
     result_info=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result:" | head -10 | while read -r line; do
         # Only check jq for lines that contain Final Result
-        if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
+        if echo "$line" | cut -f2- | jq -e '.isSidechain == true or .toolUseResult' >/dev/null 2>&1; then
             echo "$line"
             break
         fi
@@ -86,9 +86,9 @@ get_quality_result() {
         # Determine result type and extract content
         if echo "$line" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
             last_result=$(extract_message_content "$line")
-        elif echo "$line" | jq -e '.toolUseResult | type == "string"' >/dev/null 2>&1; then
+        elif echo "$line" | jq -e '.toolUseResult' >/dev/null 2>&1; then
             local tool_result_content
-            tool_result_content=$(echo "$line" | jq -r '.toolUseResult' 2>/dev/null)
+            tool_result_content=$(extract_tool_use_result_content "$line")
             if [[ -n "$tool_result_content" ]] && echo "$tool_result_content" | grep -q "Final Result:"; then
                 last_result="$tool_result_content"
             fi
@@ -142,7 +142,7 @@ get_quality_result() {
     fi
     
     # Check result status
-    if echo "$last_result" | grep -q "✅ APPROVED"; then
+    if echo "$last_result" | grep -qE "✅.*APPROVED"; then
         # Check for file edits after approval
         if has_edits_after_line "$transcript_path" "$last_result_line"; then
             return 2  # Stale approval
@@ -169,6 +169,25 @@ extract_user_content() {
         else
             empty
         end' 2>/dev/null
+}
+
+# Helper function to extract content from toolUseResult
+# Handles both string and object formats
+# Input: JSON line (from transcript)
+# Output: extracted text content or empty string
+extract_tool_use_result_content() {
+    local json_line="$1"
+    echo "$json_line" | jq -r '
+        if (.toolUseResult | type) == "string" then
+            .toolUseResult
+        elif (.toolUseResult | type) == "object" then
+            .toolUseResult
+            | .content[]?
+            | select(.type == "text")
+            | .text // empty
+        else
+            empty
+        end' 2>/dev/null | tr '\n' ' '
 }
 
 # Helper function to extract content from transcript line (deprecated - use extract_user_content)
@@ -200,12 +219,26 @@ count_attempts_since_last_reset_point() {
     # Find last APPROVED result line number using reverse search
     local last_approved_line=0
     local approved_result
-    approved_result=$($REVERSE_CMD "$transcript_path" | nl -nrn | grep "Final Result: ✅ APPROVED" | while read -r line; do
-        if echo "$line" | cut -f2- | jq -e '.isSidechain == true or (.toolUseResult | type == "string")' >/dev/null 2>&1; then
-            echo "$line" | cut -f1  # Return line number
+    approved_result=$(
+      $REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
+        # Fast prefilter
+        if echo "$line" | grep -q "Final Result:"; then
+          json_data=$(echo "$line" | cut -f2-)
+          # Extract only from trusted locations
+          if echo "$json_data" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
+            content=$(extract_message_content "$json_data")
+          elif echo "$json_data" | jq -e '.toolUseResult' >/dev/null 2>&1; then
+            content=$(extract_tool_use_result_content "$json_data")
+          else
+            continue
+          fi
+          if [[ -n "$content" ]] && echo "$content" | grep -qE "Final Result:.*✅.*APPROVED"; then
+            echo "$line" | cut -f1
             break
+          fi
         fi
-    done | head -1)
+      done | head -1
+    )
     
     if [[ -n "$approved_result" ]]; then
         local total_lines

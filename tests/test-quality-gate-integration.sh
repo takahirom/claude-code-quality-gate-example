@@ -167,7 +167,7 @@ test_nl_jq_bug() {
     echo "nl -nrn + jq bug reproduction"
     
     # Create transcript that would trigger the bug (toolUseResult format)
-    echo "# Test transcript" > "$TEST_TRANSCRIPT"
+    > "$TEST_TRANSCRIPT"
     get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
     get_data "TOOL_USE_RESULT_APPROVE" >> "$TEST_TRANSCRIPT"
     
@@ -178,6 +178,62 @@ test_nl_jq_bug() {
     
     # With the fix, this should detect APPROVED and exit 0
     run_test "nl -nrn bug fix verification" "0" "$exit_code" "$stderr_output"
+}
+
+# Integration test - Task tool with quality-gate-keeper workflow 
+test_task_tool_quality_gate_workflow() {
+    echo "Task tool with quality-gate-keeper integration test"
+    
+    # Create transcript that reproduces the infinite loop bug:
+    # 1. Task tool usage with quality-gate-keeper that returns APPROVED 
+    # 2. APPROVED message in object format (like real transcript)
+    # 3. SHOULD return exit code 0 (APPROVED detected) but returns 2 (bug reproduction)
+    > "$TEST_TRANSCRIPT"
+    get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
+    # Add initial edits that trigger quality gate
+    get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
+    get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
+    # Add Task tool usage with quality-gate-keeper subagent
+    get_data "INTERVENTION_MESSAGE" >> "$TEST_TRANSCRIPT"
+    # Add APPROVED message in object format (like real transcript)
+    get_data "TOOL_USE_RESULT_APPROVE_OBJECT_FORMAT" >> "$TEST_TRANSCRIPT"
+    
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
+    
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    
+    # Object format toolUseResult detection should work: APPROVED detected and no subsequent edits
+    # Expected: exit 0 (APPROVED correctly detected from object format)
+    # This tests the core bug fix: object format toolUseResult detection
+    run_test "Task tool object format APPROVED detection" "0" "$exit_code" "$stderr_output"
+}
+
+# Integration test - Task tool with stale approval 
+test_task_tool_stale_approval() {
+    echo "Task tool with stale approval test"
+    
+    # Create transcript: APPROVED in object format, then edits (making approval stale)
+    > "$TEST_TRANSCRIPT"
+    get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
+    get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
+    get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
+    get_data "INTERVENTION_MESSAGE" >> "$TEST_TRANSCRIPT"
+    # Add APPROVED message in object format
+    get_data "TOOL_USE_RESULT_APPROVE_OBJECT_FORMAT" >> "$TEST_TRANSCRIPT"
+    # Add edits after approval (making it stale)
+    get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT"
+    get_data "WRITE_TOOL_USE" >> "$TEST_TRANSCRIPT"
+    get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
+    
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
+    
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
+    exit_code=$?
+    
+    # APPROVED is detected from object format, but subsequent edits make it stale
+    # Expected: exit 2 (stale approval due to edits after APPROVED message)
+    run_test "Task tool object format with stale approval" "2" "$exit_code" "$stderr_output"
 }
 
 # pre-commit with git -c option
