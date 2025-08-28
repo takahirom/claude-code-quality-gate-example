@@ -278,7 +278,9 @@ count_attempts_since_last_reset_point() {
     # Count Stop hook messages after start line
     # Stop hook messages appear in tool_use commands within assistant messages
     local attempt_count=0
-    local temp_transcript="/tmp/filtered_transcript.jsonl"
+    local temp_transcript
+    temp_transcript="$(mktemp "${TMPDIR:-/tmp}/filtered_transcript.XXXXXX.jsonl")"
+    trap 'rm -f "$temp_transcript"' RETURN
     
     if [[ $start_line -gt 0 ]]; then
         # Extract lines after start_line
@@ -293,7 +295,7 @@ count_attempts_since_last_reset_point() {
     raw_count=$(grep -c "Quality gate blocking session completion" "$temp_transcript" 2>/dev/null || echo 0)
     attempt_count=$(echo "$raw_count" | head -1 | tr -d ' \n\r')
     
-    rm -f "$temp_transcript"
+    # cleanup handled by trap
     
     # Log only if LOG_FILE is set
     if [[ -n "$LOG_FILE" ]]; then
