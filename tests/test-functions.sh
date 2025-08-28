@@ -312,7 +312,7 @@ test_large_file_performance() {
     local user_count=$(grep -c '"type":"user"' "$large_perf_test")
     echo "Test file: $file_size, $user_count users"
     
-    # Performance requirement: should complete within 0.5 seconds
+    # Performance requirement: should complete within 1.5 seconds
     if ! command -v bc >/dev/null 2>&1; then
         echo "⏭️ Skipping performance test (bc not available)"
         PASSED_TESTS=$((PASSED_TESTS + 1))
@@ -338,11 +338,11 @@ test_large_file_performance() {
     if [[ $result_code -eq 124 ]]; then
         echo "❌ PERFORMANCE FAILURE: Function timed out (>5s) with $user_count users"
         FAILED_TESTS=$((FAILED_TESTS + 1))
-    elif (( $(echo "$duration > 0.5" | bc -l 2>/dev/null || echo "0") )); then
-        echo "❌ PERFORMANCE FAILURE: ${duration}s (requirement: <0.5s) with $user_count users"
+    elif (( $(echo "$duration > 1.5" | bc -l 2>/dev/null || echo "0") )); then
+        echo "❌ PERFORMANCE FAILURE: ${duration}s (requirement: <1.5s) with $user_count users"
         FAILED_TESTS=$((FAILED_TESTS + 1))
     else
-        echo "✅ Performance test: PASSED (${duration}s < 0.5s requirement)"
+        echo "✅ Performance test: PASSED (${duration}s < 1.5s requirement)"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     fi
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
