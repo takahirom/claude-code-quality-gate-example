@@ -217,25 +217,20 @@ count_attempts_since_last_reset_point() {
     
     # Find last APPROVED result and user input using reverse search
     # Find last APPROVED result line number using reverse search
+    # PERFORMANCE OPTIMIZED: Pre-filter with grep to reduce jq calls dramatically
     local last_approved_line=0
     local approved_result
     approved_result=$(
-      $REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
-        # Fast prefilter
-        if echo "$line" | grep -q "Final Result:"; then
-          json_data=$(echo "$line" | cut -f2-)
-          # Extract only from trusted locations
-          if echo "$json_data" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
-            content=$(extract_message_content "$json_data")
-          elif echo "$json_data" | jq -e '.toolUseResult' >/dev/null 2>&1; then
-            content=$(extract_tool_use_result_content "$json_data")
-          else
-            continue
-          fi
-          if [[ -n "$content" ]] && echo "$content" | grep -qE "Final Result:.*✅.*APPROVED"; then
-            echo "$line" | cut -f1
-            break
-          fi
+      $REVERSE_CMD "$transcript_path" | nl -nrn | grep -E 'Final Result:.*✅.*APPROVED' | head -5 | while read -r line; do
+        # Only process lines that already contain APPROVED pattern
+        json_data=$(echo "$line" | cut -f2-)
+        # Extract only from trusted locations
+        if echo "$json_data" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
+          echo "$line" | cut -f1
+          break
+        elif echo "$json_data" | jq -e '.toolUseResult' >/dev/null 2>&1; then
+          echo "$line" | cut -f1
+          break
         fi
       done | head -1
     )

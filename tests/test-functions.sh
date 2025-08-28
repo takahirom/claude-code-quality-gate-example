@@ -275,6 +275,137 @@ performance_test() {
     rm -f "$large_transcript"
 }
 
+# Test 16: Performance regression with large files  
+test_large_file_performance() {
+    echo "Test 16: Large file performance (PERFORMANCE REQUIREMENT)"
+    
+    # Create a transcript that mimics the problematic real-world file
+    # - Many user messages (simulate ~500-1000)
+    # - Multiple Final Result entries
+    local large_perf_test="./tmp/large-perf-test.jsonl"
+    
+    echo "# Large performance test" > "$large_perf_test"
+    
+    # Add many user messages to trigger the bottleneck (match real-world scenario)
+    echo "Creating large test file with 800 user messages..."
+    for i in {1..800}; do
+        generate_user_message "Performance test message $i" "perf-user-$i" >> "$large_perf_test"
+        # Add some variety every 50 messages
+        if (( i % 50 == 0 )); then
+            get_data "ASSISTANT_RESPONSE" >> "$large_perf_test"
+        fi
+    done
+    
+    # Add many Final Result entries (mix of real and false positives) to trigger slow search
+    for i in {1..25}; do
+        generate_bash_command 'grep "Final Result:" /tmp/test.jsonl' "Search $i" "bash-search-$i" >> "$large_perf_test"
+        if (( i % 5 == 0 )); then
+            get_data "REJECT_RESULT" >> "$large_perf_test"
+        fi
+    done
+    
+    # Add actual Final Result at the end
+    get_data "APPROVE_RESULT" >> "$large_perf_test"
+    
+    local file_size=$(ls -lh "$large_perf_test" | awk '{print $5}' | tr -d ' ')
+    local user_count=$(grep -c '"type":"user"' "$large_perf_test")
+    echo "Test file: $file_size, $user_count users"
+    
+    # Performance requirement: should complete within 0.5 seconds
+    local start_time=$(date +%s.%N)
+    timeout 5 bash -c "
+        source './.claude/scripts/common-config.sh'
+        get_quality_result '$large_perf_test'
+    "
+    local result_code=$?
+    local end_time=$(date +%s.%N)
+    
+    if command -v bc >/dev/null 2>&1; then
+        local duration=$(echo "$end_time - $start_time" | bc)
+    else
+        local duration=$((end_time - start_time))
+    fi
+    
+    rm -f "$large_perf_test"
+    
+    if [[ $result_code -eq 124 ]]; then
+        echo "❌ PERFORMANCE FAILURE: Function timed out (>5s) with $user_count users"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    elif (( $(echo "$duration > 0.5" | bc -l 2>/dev/null || echo "0") )); then
+        echo "❌ PERFORMANCE FAILURE: ${duration}s (requirement: <0.5s) with $user_count users"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    else
+        echo "✅ Performance test: PASSED (${duration}s < 0.5s requirement)"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+}
+
+# Test 17: count_attempts_since_last_reset_point performance
+test_count_attempts_performance() {
+    echo "Test 17: count_attempts_since_last_reset_point performance"
+    
+    local large_count_test="./tmp/large-count-test.jsonl"
+    echo "# Large count test" > "$large_count_test"
+    
+    # Create scenario that triggers the slow path in count_attempts_since_last_reset_point:
+    # LOTS of user messages + mixed Final Result entries (this is what's slow)
+    for i in {1..600}; do
+        generate_user_message "Count test message $i" "count-user-$i" >> "$large_count_test"
+    done
+    
+    # Add many Final Result entries scattered throughout to trigger slow search
+    # This makes the "find last approved" and "find last user" loops very slow
+    for i in {1..20}; do
+        generate_bash_command 'grep "Final Result:" /tmp/test.jsonl' "Search $i" "bash-search-$i" >> "$large_count_test"
+        get_data "REJECT_RESULT" >> "$large_count_test"
+        # Add more user messages between results
+        for j in {1..20}; do
+            generate_user_message "Interleaved message $i-$j" "inter-$i-$j" >> "$large_count_test"
+        done
+    done
+    
+    # Add final approval
+    get_data "APPROVE_RESULT" >> "$large_count_test"
+    
+    # Add more user messages after approval (this triggers the expensive search)
+    for i in {1..50}; do
+        generate_user_message "Post-approval message $i" "post-user-$i" >> "$large_count_test"
+    done
+    
+    local user_count=$(grep -c '"type":"user"' "$large_count_test")
+    echo "Test file: $user_count users"
+    
+    # Performance requirement: should complete within 2 seconds (realistic for large files)
+    local start_time=$(date +%s.%N)
+    timeout 10 bash -c "
+        source './.claude/scripts/common-config.sh'
+        count_attempts_since_last_reset_point '$large_count_test' 10
+    "
+    local result_code=$?
+    local end_time=$(date +%s.%N)
+    
+    if command -v bc >/dev/null 2>&1; then
+        local duration=$(echo "$end_time - $start_time" | bc)
+    else
+        local duration=$((end_time - start_time))
+    fi
+    
+    rm -f "$large_count_test"
+    
+    if [[ $result_code -eq 124 ]]; then
+        echo "❌ COUNT PERFORMANCE FAILURE: Function timed out (>10s) with $user_count users"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    elif (( $(echo "$duration > 2" | bc -l 2>/dev/null || echo "0") )); then
+        echo "❌ COUNT PERFORMANCE FAILURE: ${duration}s (requirement: <2s) with $user_count users"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    else
+        echo "✅ Count performance test: PASSED (${duration}s < 2s requirement)"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+}
+
 # Performance regression test - reproduces real world slowdown
 performance_regression_test() {
     echo "Performance Regression Test: Large file with many user messages"
