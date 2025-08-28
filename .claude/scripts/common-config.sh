@@ -221,18 +221,21 @@ count_attempts_since_last_reset_point() {
     local last_approved_line=0
     local approved_result
     approved_result=$(
-      $REVERSE_CMD "$transcript_path" | nl -nrn | grep -E 'Final Result:.*✅.*APPROVED' | head -5 | while read -r line; do
-        # Only process lines that already contain APPROVED pattern
-        json_data=$(echo "$line" | cut -f2-)
-        # Extract only from trusted locations
-        if echo "$json_data" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
-          echo "$line" | cut -f1
-          break
-        elif echo "$json_data" | jq -e '.toolUseResult' >/dev/null 2>&1; then
-          echo "$line" | cut -f1
-          break
-        fi
-      done | head -1
+      $REVERSE_CMD "$transcript_path" \
+        | nl -nrn \
+        | grep -m50 -E 'Final Result:.*(✅[[:space:]]*)?APPROVED' \
+        | while IFS= read -r line; do
+            json_data=$(echo "$line" | cut -f2-)
+            # Only accept trusted sources, and for toolUseResult re-validate the content has APPROVED
+            if echo "$json_data" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
+              echo "$line" | cut -f1; break
+            elif echo "$json_data" | jq -e '.toolUseResult' >/dev/null 2>&1; then
+              tool_content=$(extract_tool_use_result_content "$json_data")
+              if echo "$tool_content" | grep -qE 'Final Result:.*(✅[[:space:]]*)?APPROVED'; then
+                echo "$line" | cut -f1; break
+              fi
+            fi
+          done | head -1
     )
     
     if [[ -n "$approved_result" ]]; then
