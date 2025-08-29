@@ -217,27 +217,25 @@ count_attempts_since_last_reset_point() {
     
     # Find last APPROVED result and user input using reverse search
     # Find last APPROVED result line number using reverse search
+    # PERFORMANCE OPTIMIZED: Pre-filter with grep to reduce jq calls dramatically
     local last_approved_line=0
     local approved_result
     approved_result=$(
-      $REVERSE_CMD "$transcript_path" | nl -nrn | while read -r line; do
-        # Fast prefilter
-        if echo "$line" | grep -q "Final Result:"; then
-          json_data=$(echo "$line" | cut -f2-)
-          # Extract only from trusted locations
-          if echo "$json_data" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
-            content=$(extract_message_content "$json_data")
-          elif echo "$json_data" | jq -e '.toolUseResult' >/dev/null 2>&1; then
-            content=$(extract_tool_use_result_content "$json_data")
-          else
-            continue
-          fi
-          if [[ -n "$content" ]] && echo "$content" | grep -qE "Final Result:.*✅.*APPROVED"; then
-            echo "$line" | cut -f1
-            break
-          fi
-        fi
-      done | head -1
+      $REVERSE_CMD "$transcript_path" \
+        | nl -nrn \
+        | grep -m50 -E 'Final Result:.*(✅[[:space:]]*)?APPROVED' \
+        | while IFS= read -r line; do
+            json_data=$(echo "$line" | cut -f2-)
+            # Only accept trusted sources, and for toolUseResult re-validate the content has APPROVED
+            if echo "$json_data" | jq -e '.isSidechain == true' >/dev/null 2>&1; then
+              echo "$line" | cut -f1; break
+            elif echo "$json_data" | jq -e '.toolUseResult' >/dev/null 2>&1; then
+              tool_content=$(extract_tool_use_result_content "$json_data")
+              if echo "$tool_content" | grep -qE 'Final Result:.*(✅[[:space:]]*)?APPROVED'; then
+                echo "$line" | cut -f1; break
+              fi
+            fi
+          done | head -1
     )
     
     if [[ -n "$approved_result" ]]; then
@@ -280,7 +278,9 @@ count_attempts_since_last_reset_point() {
     # Count Stop hook messages after start line
     # Stop hook messages appear in tool_use commands within assistant messages
     local attempt_count=0
-    local temp_transcript="/tmp/filtered_transcript.jsonl"
+    local temp_transcript
+    temp_transcript="$(mktemp "${TMPDIR:-/tmp}/filtered_transcript.XXXXXX.jsonl")"
+    trap 'rm -f "$temp_transcript"' RETURN
     
     if [[ $start_line -gt 0 ]]; then
         # Extract lines after start_line
@@ -295,7 +295,7 @@ count_attempts_since_last_reset_point() {
     raw_count=$(grep -c "Quality gate blocking session completion" "$temp_transcript" 2>/dev/null || echo 0)
     attempt_count=$(echo "$raw_count" | head -1 | tr -d ' \n\r')
     
-    rm -f "$temp_transcript"
+    # cleanup handled by trap
     
     # Log only if LOG_FILE is set
     if [[ -n "$LOG_FILE" ]]; then
