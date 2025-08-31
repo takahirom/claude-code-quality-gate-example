@@ -279,7 +279,7 @@ count_attempts_since_last_reset_point() {
     # Stop hook messages appear in tool_use commands within assistant messages
     local attempt_count=0
     local temp_transcript
-    temp_transcript="$(mktemp "${TMPDIR:-/tmp}/filtered_transcript.XXXXXX.jsonl")"
+    temp_transcript="$(mktemp -t filtered_transcript.$$.XXXXXX)" && temp_transcript="${temp_transcript}.jsonl"
     trap 'rm -f "$temp_transcript"' RETURN
     
     if [[ $start_line -gt 0 ]]; then

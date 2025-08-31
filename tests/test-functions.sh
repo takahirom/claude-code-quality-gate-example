@@ -283,7 +283,7 @@ test_large_file_performance() {
     # - Many user messages (simulate ~500-1000)
     # - Multiple Final Result entries
     local large_perf_test
-    large_perf_test="$(mktemp "${TMPDIR:-/tmp}/large-perf-test.XXXXXX.jsonl")"
+    large_perf_test="$(mktemp -t large-perf-test.$$.XXXXXX)" && large_perf_test="${large_perf_test}.jsonl"
     echo "# Large performance test" > "$large_perf_test"
     trap 'rm -f "$large_perf_test"' RETURN
     
@@ -353,7 +353,7 @@ test_count_attempts_performance() {
     echo "Test 17: count_attempts_since_last_reset_point performance"
     
     local large_count_test
-    large_count_test="$(mktemp "${TMPDIR:-/tmp}/large-count-test.XXXXXX.jsonl")"
+    large_count_test="$(mktemp -t large-count-test.$$.XXXXXX)" && large_count_test="${large_count_test}.jsonl"
     echo "# Large count test" > "$large_count_test"
     trap 'rm -f "$large_count_test"' RETURN
     
