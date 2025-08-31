@@ -283,9 +283,9 @@ test_large_file_performance() {
     # - Many user messages (simulate ~500-1000)
     # - Multiple Final Result entries
     local large_perf_test
-    large_perf_test="$(mktemp "${TMPDIR:-/tmp}/large-perf-test.XXXXXX.jsonl")"
+    large_perf_test="$(mktemp "${TMPDIR:-/tmp}"/large-perf-test.$$.XXXXXX.jsonl)"
     echo "# Large performance test" > "$large_perf_test"
-    trap 'rm -f "$large_perf_test"' RETURN
+    trap 'rm -f -- "$large_perf_test"' RETURN
     
     # Add many user messages to trigger the bottleneck (match real-world scenario)
     echo "Creating large test file with 800 user messages..."
@@ -353,9 +353,9 @@ test_count_attempts_performance() {
     echo "Test 17: count_attempts_since_last_reset_point performance"
     
     local large_count_test
-    large_count_test="$(mktemp "${TMPDIR:-/tmp}/large-count-test.XXXXXX.jsonl")"
+    large_count_test="$(mktemp "${TMPDIR:-/tmp}"/large-count-test.$$.XXXXXX.jsonl)"
     echo "# Large count test" > "$large_count_test"
-    trap 'rm -f "$large_count_test"' RETURN
+    trap 'rm -f -- "$large_count_test"' RETURN
     
     # Create scenario that triggers the slow path in count_attempts_since_last_reset_point:
     # LOTS of user messages + mixed Final Result entries (this is what's slow)
