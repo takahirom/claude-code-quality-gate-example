@@ -63,7 +63,7 @@ elif ! git rev-parse --git-dir >/dev/null 2>&1; then
         echo "Not in git repository - skipping quality gate (set QUALITY_GATE_RUN_OUTSIDE_GIT=true to run)" >> "$LOG_FILE"
         exit 0
     fi
-elif [[ -z $(git status --porcelain 2>/dev/null) ]]; then
+elif [[ -z $(git diff --name-only 2>/dev/null) ]] && [[ -z $(git ls-files --others --exclude-standard 2>/dev/null) ]]; then
     echo "No git changes detected - skipping quality gate" >> "$LOG_FILE"
     exit 0
 else
