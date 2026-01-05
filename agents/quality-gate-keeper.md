@@ -1,6 +1,6 @@
 ---
 name: quality-gate-keeper
-description: Guards code quality intelligently - When tests pass, enforces strict standards and removes debug code. When tests fail, focuses on helpful guidance to fix test issues first
+description: Guards code quality intelligently. Use after edits and before commits.
 tools: Bash, Edit, Read, Grep, Glob, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash
 ---
 

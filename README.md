@@ -6,60 +6,34 @@ A complete quality automation system using Claude Code Hooks and Subagents to en
 
 > **⚠️ Note**: This system may cause infinite loops if quality standards are too strict. Adjust quality-gate-keeper.md or modify scripts if needed.
 
-## How to Install (Global Settings)
+## How to Install (Plugin)
 
 1. Clone this repository:
    ```bash
    git clone https://github.com/takahirom/claude-code-quality-gate-example.git ~/claude-quality-gate
-   chmod +x ~/claude-quality-gate/.claude/scripts/*.sh
    ```
 
-2. Add to your global Claude Code settings (`~/.claude/settings.json`):
-   ```json
-   {
-     "hooks": {
-       "PreToolUse": [
-         {
-           "matcher": "Bash",
-           "hooks": [
-             {
-               "type": "command",
-               "command": "~/claude-quality-gate/.claude/scripts/quality-gate-pre-commit.sh",
-               "timeout": 30
-             }
-           ]
-         }
-       ],
-       "Stop": [
-         {
-           "matcher": "*",
-           "hooks": [
-             {
-               "type": "command",
-               "command": "~/claude-quality-gate/.claude/scripts/quality-gate-stop.sh",
-               "timeout": 30
-             }
-           ]
-         }
-       ]
-     }
-   }
+2. Install the plugin from the local path in Claude Code:
+   ```
+   /plugin install ~/claude-quality-gate
    ```
 
-3. Link the Subagent definition:
-   ```bash
-   mkdir -p ~/.claude/agents
-   ln -s ~/claude-quality-gate/.claude/agents/quality-gate-keeper.md ~/.claude/agents/
+3. Install from GitHub (recommended for sharing):
+   ```
+   /plugin marketplace add takahirom/claude-code-quality-gate-example
+   /plugin install claude-code-quality-gate-example@claude-code-quality-gate-example
    ```
 
 4. Ensure dependencies are installed:
    ```bash
    # macOS
    brew install jq
-   
-   # Ubuntu/Debian
-   sudo apt-get install jq
-   ```
+    
+    # Ubuntu/Debian
+    sudo apt-get install jq
+    ```
+
+> Legacy note: The previous setup used project hooks in `.claude/settings.json` and a symlinked agent. The plugin install replaces both, so `.claude/` is no longer required.
 
 ## Execution Flow
 
@@ -143,4 +117,3 @@ The system uses quality-gate-keeper's direct output for decision making:
 - **Infinite Loop Risk**: Quality standards that are too strict may cause loops. Adjust quality-gate-keeper.md or scripts as needed
 - **Experimental System**: Test in a safe environment first  
 - **Use at Your Own Risk**: No warranty or support provided
-
