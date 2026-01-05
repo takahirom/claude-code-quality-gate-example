@@ -8,23 +8,13 @@ A complete quality automation system using Claude Code Hooks and Subagents to en
 
 ## How to Install (Plugin)
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/takahirom/claude-code-quality-gate-example.git ~/claude-quality-gate
-   ```
-
-2. Install the plugin from the local path in Claude Code:
-   ```
-   /plugin install ~/claude-quality-gate
-   ```
-
-3. Install from GitHub (recommended for sharing):
+1. Install from GitHub (recommended):
    ```
    /plugin marketplace add takahirom/claude-code-quality-gate-example
    /plugin install claude-code-quality-gate-example@claude-code-quality-gate-example
    ```
 
-4. Ensure dependencies are installed:
+2. Ensure dependencies are installed:
    ```bash
    # macOS
    brew install jq
