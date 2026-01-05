@@ -8,7 +8,7 @@ echo "=== Edit Tool Detection Test ==="
 # Script directory detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-QUALITY_GATE_DIR="$PROJECT_ROOT/.claude/scripts"
+QUALITY_GATE_DIR="$PROJECT_ROOT/plugins/claude-code-quality-gate-example/scripts"
 
 # Load common test data
 source "$SCRIPT_DIR/test-data-common.sh"

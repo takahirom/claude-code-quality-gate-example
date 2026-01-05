@@ -34,7 +34,7 @@ pass_count=0
 
 # Store original directory
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPT_PATH="$PROJECT_ROOT/.claude/scripts/quality-gate-status.sh"
+SCRIPT_PATH="$PROJECT_ROOT/plugins/claude-code-quality-gate-example/scripts/quality-gate-status.sh"
 
 if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
     echo "Debug: Project root: $PROJECT_ROOT"
@@ -43,8 +43,8 @@ fi
 
 if [[ ! -f "$SCRIPT_PATH" ]]; then
     echo "ERROR: quality-gate-status.sh not found at $SCRIPT_PATH"
-    echo "Directory contents of $PROJECT_ROOT/.claude/scripts:"
-    ls -la "$PROJECT_ROOT/.claude/scripts" || true
+    echo "Directory contents of $PROJECT_ROOT/plugins/claude-code-quality-gate-example/scripts:"
+    ls -la "$PROJECT_ROOT/plugins/claude-code-quality-gate-example/scripts" || true
     exit 1
 fi
 

@@ -7,9 +7,9 @@ echo "=== Quality Gate Integration Test ==="
 
 # Script directory detection for universal path resolution
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Go up one level from tests/ to find .claude/scripts/ (relative to script location)
+# Go up one level from tests/ to find plugins/claude-code-quality-gate-example/scripts/ (relative to script location)
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-QUALITY_GATE_DIR="$PROJECT_ROOT/.claude/scripts"
+QUALITY_GATE_DIR="$PROJECT_ROOT/plugins/claude-code-quality-gate-example/scripts"
 
 # Load common test data
 source "$SCRIPT_DIR/test-data-common.sh"

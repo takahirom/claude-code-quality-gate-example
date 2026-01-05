@@ -58,6 +58,7 @@ flowchart TD
 ### Hooks
 - **Stop**: Launches `quality-gate-stop.sh` when work ends - checks transcript history for Final Result
 - **PreToolUse**: Launches `quality-gate-pre-commit.sh` on git commit - blocks commit unless APPROVED
+  - Plugin hooks rely on `CLAUDE_PLUGIN_ROOT` (provided by Claude Code) to resolve script paths
 
 ### Subagents
 - **quality-gate-keeper**: Analyzes code quality and outputs clear verdicts
