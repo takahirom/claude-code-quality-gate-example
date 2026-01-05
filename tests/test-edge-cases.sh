@@ -6,7 +6,7 @@
 set +e
 
 # Source the common config to get the function
-source "$(dirname "$0")/../.claude/scripts/common-config.sh"
+source "$(dirname "$0")/../plugins/claude-code-quality-gate-example/scripts/common-config.sh"
 
 # Test counter
 TESTS_PASSED=0

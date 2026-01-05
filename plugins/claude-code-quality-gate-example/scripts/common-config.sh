@@ -23,7 +23,8 @@ QUALITY_GATE_RUN_OUTSIDE_GIT="${QUALITY_GATE_RUN_OUTSIDE_GIT:-false}"
 # Configurable pattern for file editing tools (for MCP compatibility)
 # Support both old and new variable names for backward compatibility
 # Includes standard tools and serena MCP tools
-QUALITY_GATE_EDIT_TOOLS_PATTERN="${QUALITY_GATE_EDIT_TOOLS_PATTERN:-${EDIT_TOOLS_PATTERN:-(Write|Edit|MultiEdit|NotebookEdit|replace_regex|replace_symbol_body|insert_after_symbol|insert_before_symbol|mcp__serena__(replace_regex|replace_symbol_body|insert_after_symbol|insert_before_symbol))}}"
+# Note: Anchors enforce exact matches (e.g., TodoWrite no longer matches Write) and stay portable across GNU/BSD grep
+QUALITY_GATE_EDIT_TOOLS_PATTERN="${QUALITY_GATE_EDIT_TOOLS_PATTERN:-${EDIT_TOOLS_PATTERN:-^(Write|Edit|MultiEdit|NotebookEdit|replace_regex|replace_symbol_body|insert_after_symbol|insert_before_symbol|mcp__serena__(replace_regex|replace_symbol_body|insert_after_symbol|insert_before_symbol))$}}"
 
 # Check dependencies function
 check_dependencies() {

@@ -8,7 +8,7 @@ echo "=== Edit Tool Detection Test ==="
 # Script directory detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-QUALITY_GATE_DIR="$PROJECT_ROOT/.claude/scripts"
+QUALITY_GATE_DIR="$PROJECT_ROOT/plugins/claude-code-quality-gate-example/scripts"
 
 # Load common test data
 source "$SCRIPT_DIR/test-data-common.sh"
@@ -196,12 +196,64 @@ test_approved_then_mcp_edit() {
     get_data "MCP_SERENA_REPLACE" >> "$TEST_TRANSCRIPT" 2>/dev/null || {
         echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__serena__replace_regex","input":{"relative_path":"test.txt","regex":"old","repl":"new"}}]}}' >> "$TEST_TRANSCRIPT"
     }
-    
+
     input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
     stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
     exit_code=$?
-    
+
     run_test "APPROVED then MCP edit (stale)" "2" "$exit_code" "$stderr_output"
+}
+
+# Test 9: TodoWrite tool - should NOT trigger quality gate (false positive prevention)
+test_todowrite_tool() {
+    echo "Test: TodoWrite tool (should not match Write pattern)"
+    > "$TEST_TRANSCRIPT"  # Empty transcript
+    get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
+    # TodoWrite should NOT be detected as an edit tool
+    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"TodoWrite","input":{"todos":[{"content":"Test task","status":"pending","activeForm":"Testing"}]}}]}}' >> "$TEST_TRANSCRIPT"
+    get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
+
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
+    exit_code=$?
+
+    run_test "TodoWrite tool (false positive prevention)" "0" "$exit_code" "$stderr_output"
+}
+
+# Test 10: Task tool - should NOT trigger quality gate (false positive prevention)
+test_task_tool() {
+    echo "Test: Task tool (should not match Edit pattern)"
+    > "$TEST_TRANSCRIPT"  # Empty transcript
+    get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
+    # Task should NOT be detected as an edit tool
+    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"quality-gate-keeper","description":"Review code","prompt":"Please review"}}]}}' >> "$TEST_TRANSCRIPT"
+    get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
+
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
+    exit_code=$?
+
+    run_test "Task tool (false positive prevention)" "0" "$exit_code" "$stderr_output"
+}
+
+# Test 11: APPROVED then TodoWrite - should NOT trigger stale approval
+test_approved_then_todowrite() {
+    echo "Test: APPROVED then TodoWrite (should not be stale)"
+    > "$TEST_TRANSCRIPT"  # Empty transcript
+    get_data "USER_INPUT" >> "$TEST_TRANSCRIPT"
+    get_data "EDIT_TOOL_USE" >> "$TEST_TRANSCRIPT" 2>/dev/null || {
+        echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/test.txt","old_string":"old","new_string":"new"}}]}}' >> "$TEST_TRANSCRIPT"
+    }
+    get_data "APPROVE_RESULT" >> "$TEST_TRANSCRIPT"
+    get_data "ASSISTANT_RESPONSE" >> "$TEST_TRANSCRIPT"
+    # Add TodoWrite after approval - should NOT cause stale approval
+    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"TodoWrite","input":{"todos":[{"content":"Task","status":"completed","activeForm":"Completing"}]}}]}}' >> "$TEST_TRANSCRIPT"
+
+    input_json='{"transcript_path":"'$TEST_TRANSCRIPT'"}'
+    stderr_output=$(echo "$input_json" | "$QUALITY_GATE_DIR/quality-gate-stop.sh" 2>&1 >/dev/null)
+    exit_code=$?
+
+    run_test "APPROVED then TodoWrite (not stale)" "0" "$exit_code" "$stderr_output"
 }
 
 # Execute all tests

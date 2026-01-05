@@ -90,7 +90,7 @@ get_stop_hook_feedback() {
     "content": [
       {
         "type": "text",
-        "text": "Stop hook feedback:\n- ['$CWD'/.claude/scripts/quality-gate-stop.sh]: ❌ STOP: Quality gate blocking session completion.\n➡️  Action required: Use Task tool with subagent_type='\''quality-gate-keeper'\''\n🔍 Purpose: Thorough code quality inspection required\n🔄 This message repeats until proper quality review completed"
+        "text": "Stop hook feedback:\n- ['$CWD'/plugins/claude-code-quality-gate-example/scripts/quality-gate-stop.sh]: ❌ STOP: Quality gate blocking session completion.\n➡️  Action required: Use Task tool with subagent_type='\''quality-gate-keeper'\''\n🔍 Purpose: Thorough code quality inspection required\n🔄 This message repeats until proper quality review completed"
       }
     ]
   },
