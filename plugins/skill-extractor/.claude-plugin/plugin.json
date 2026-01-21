@@ -1,0 +1,5 @@
+{
+    "name": "skill-extractor",
+    "description": "Extract learnings from conversation and save as skills.",
+    "version": "1.0.0"
+}
