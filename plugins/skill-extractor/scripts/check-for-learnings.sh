@@ -31,5 +31,5 @@ if grep -q "skill-extractor" "$transcript_path" 2>/dev/null; then
     exit 0
 fi
 
-# Suggest skill extraction
-echo '{"decision": "block", "reason": "Consider extracting learnings from this session. Use the skill-extractor agent to analyze the conversation and save valuable patterns as skills."}'
+# Suggest skill extraction with transcript path
+echo "{\"decision\": \"block\", \"reason\": \"Consider extracting learnings from this session. Use the skill-extractor agent to analyze the conversation at $transcript_path and save valuable patterns as skills.\"}"
