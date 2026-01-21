@@ -1,5 +1,11 @@
 # takahirom-claude-code-marketplace
 
+## Plugins
+
+### [claude-code-quality-gate-example](./plugins/claude-code-quality-gate-example)
+
+A quality automation system using Claude Code Hooks and Subagents to enforce code quality standards automatically.
+
 ## Install
 
 ```
