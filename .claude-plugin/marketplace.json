@@ -1,5 +1,5 @@
 {
-    "name": "claude-code-quality-gate",
+    "name": "takahirom-claude-code-marketplace",
     "owner": {
         "name": "takahirom"
     },
@@ -8,6 +8,12 @@
             "name": "claude-code-quality-gate",
             "source": "./plugins/claude-code-quality-gate",
             "description": "Quality gate automation using Claude Code hooks and subagents.",
+            "version": "1.0.0"
+        },
+        {
+            "name": "skill-extractor",
+            "source": "./plugins/skill-extractor",
+            "description": "Extract learnings from conversation and save as skills.",
             "version": "1.0.0"
         }
     ]

@@ -20,6 +20,8 @@ jobs:
     - name: Make scripts executable
       run: |
         chmod +x plugins/claude-code-quality-gate/scripts/*.sh
+        chmod +x plugins/skill-extractor/scripts/*.sh
+        chmod +x plugins/skill-extractor/tests/*.sh
         chmod +x tests/*.sh
     
     - name: Test common-config.sh syntax
@@ -64,7 +66,14 @@ jobs:
     - name: Run JSON escaping tests
       run: ./tests/test-json-escaping.sh
       if: always()
-    
+
+    - name: Test skill-extractor check-for-learnings.sh syntax
+      run: bash -n plugins/skill-extractor/scripts/check-for-learnings.sh
+
+    - name: Run skill-extractor tests
+      run: ./plugins/skill-extractor/tests/test-check-for-learnings.sh
+      if: always()
+
     - name: Test script dependencies
       run: |
         echo "Checking script dependencies..."
