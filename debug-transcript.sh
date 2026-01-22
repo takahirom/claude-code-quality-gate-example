@@ -2,7 +2,7 @@
 # Debug script to check actual transcript format
 
 # Source common configuration including REVERSE_CMD detection
-source "$(dirname "$0")/plugins/claude-code-quality-gate-example/scripts/common-config.sh"
+source "$(dirname "$0")/plugins/claude-code-quality-gate/scripts/common-config.sh"
 
 # Use provided path or default
 if [[ -n "$1" ]]; then
@@ -52,7 +52,7 @@ echo -e "\n=== Check if there are any sidechain messages ==="
 grep -c "\"isSidechain\":true" "$transcript_path"
 
 echo -e "\n=== get_quality_result Function Debug ==="
-source "$(dirname "$0")/plugins/claude-code-quality-gate-example/scripts/common-config.sh"
+source "$(dirname "$0")/plugins/claude-code-quality-gate/scripts/common-config.sh"
 
 echo "Testing get_quality_result function..."
 get_quality_result "$transcript_path"

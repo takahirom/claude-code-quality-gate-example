@@ -1,5 +1,5 @@
 {
-    "name": "claude-code-quality-gate-example",
+    "name": "claude-code-quality-gate",
     "description": "Quality gate automation using Claude Code hooks and subagents.",
     "version": "1.0.0"
 }

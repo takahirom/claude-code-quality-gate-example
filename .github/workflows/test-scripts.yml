@@ -19,20 +19,20 @@ jobs:
     
     - name: Make scripts executable
       run: |
-        chmod +x plugins/claude-code-quality-gate-example/scripts/*.sh
+        chmod +x plugins/claude-code-quality-gate/scripts/*.sh
         chmod +x tests/*.sh
     
     - name: Test common-config.sh syntax
-      run: bash -n plugins/claude-code-quality-gate-example/scripts/common-config.sh
+      run: bash -n plugins/claude-code-quality-gate/scripts/common-config.sh
     
     - name: Test quality-gate-stop.sh syntax
-      run: bash -n plugins/claude-code-quality-gate-example/scripts/quality-gate-stop.sh
+      run: bash -n plugins/claude-code-quality-gate/scripts/quality-gate-stop.sh
     
     - name: Test quality-gate-pre-commit.sh syntax
-      run: bash -n plugins/claude-code-quality-gate-example/scripts/quality-gate-pre-commit.sh
+      run: bash -n plugins/claude-code-quality-gate/scripts/quality-gate-pre-commit.sh
     
     - name: Test quality-gate-status.sh syntax
-      run: bash -n plugins/claude-code-quality-gate-example/scripts/quality-gate-status.sh
+      run: bash -n plugins/claude-code-quality-gate/scripts/quality-gate-status.sh
     
     - name: Run comprehensive function tests
       run: ./tests/test-functions.sh
@@ -68,7 +68,7 @@ jobs:
     - name: Test script dependencies
       run: |
         echo "Checking script dependencies..."
-        for script in plugins/claude-code-quality-gate-example/scripts/*.sh; do
+        for script in plugins/claude-code-quality-gate/scripts/*.sh; do
           echo "Checking $script..."
           grep -E "command -v|which" "$script" | grep -oE "(jq|git|rg|gh)" | sort -u || true
         done
