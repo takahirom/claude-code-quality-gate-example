@@ -25,5 +25,8 @@ if [ "$line_count" -lt 10 ]; then
     exit 0
 fi
 
-# Suggest skill extraction with transcript path
-echo "{\"decision\": \"block\", \"reason\": \"Consider extracting learnings from this session. Use the skill-extractor agent to analyze the conversation at $transcript_path and save valuable patterns as skills.\"}"
+# Suggest skill extraction with transcript path (use jq for safe JSON escaping)
+jq -n --arg path "$transcript_path" '{
+  decision: "block",
+  reason: "Consider extracting learnings from this session. Use the skill-extractor agent to analyze the conversation at \($path) and save valuable patterns as skills."
+}'

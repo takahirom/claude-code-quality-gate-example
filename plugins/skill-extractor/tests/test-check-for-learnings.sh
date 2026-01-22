@@ -114,6 +114,25 @@ run_test "Block response includes transcript_path in reason" \
     0 \
     "$LONG_TRANSCRIPT"
 
+# Test 10: JSON escaping - path with special characters
+SPECIAL_PATH="$TEMP_DIR/path with spaces.jsonl"
+for i in {1..20}; do
+    echo '{"type": "message"}' >> "$SPECIAL_PATH"
+done
+
+# Use jq to construct properly escaped input JSON
+input_json=$(jq -n --arg path "$SPECIAL_PATH" '{stop_hook_active: false, transcript_path: $path}')
+output=$(echo "$input_json" | "$SCRIPT_PATH" 2>&1)
+if echo "$output" | jq . > /dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC} JSON escaping handles special characters"
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+else
+    echo -e "${RED}✗${NC} JSON escaping handles special characters"
+    echo "  Output is not valid JSON: $output"
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+fi
+TESTS_RUN=$((TESTS_RUN + 1))
+
 echo ""
 echo "=== Results ==="
 echo "Total: $TESTS_RUN, Passed: $TESTS_PASSED, Failed: $TESTS_FAILED"
