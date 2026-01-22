@@ -2,7 +2,7 @@
 
 ## Plugins
 
-### [claude-code-quality-gate-example](./plugins/claude-code-quality-gate-example)
+### [claude-code-quality-gate](./plugins/claude-code-quality-gate)
 
 A quality automation system using Claude Code Hooks and Subagents to enforce code quality standards automatically.
 
@@ -10,5 +10,5 @@ A quality automation system using Claude Code Hooks and Subagents to enforce cod
 
 ```
 /plugin marketplace add takahirom/takahirom-claude-code-marketplace
-/plugin install takahirom-claude-code-marketplace@claude-code-quality-gate-example
+/plugin install takahirom-claude-code-marketplace@claude-code-quality-gate
 ```

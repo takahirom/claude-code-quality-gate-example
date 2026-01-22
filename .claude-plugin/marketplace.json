@@ -1,12 +1,12 @@
 {
-    "name": "claude-code-quality-gate-example",
+    "name": "claude-code-quality-gate",
     "owner": {
         "name": "takahirom"
     },
     "plugins": [
         {
-            "name": "claude-code-quality-gate-example",
-            "source": "./plugins/claude-code-quality-gate-example",
+            "name": "claude-code-quality-gate",
+            "source": "./plugins/claude-code-quality-gate",
             "description": "Quality gate automation using Claude Code hooks and subagents.",
             "version": "1.0.0"
         }
