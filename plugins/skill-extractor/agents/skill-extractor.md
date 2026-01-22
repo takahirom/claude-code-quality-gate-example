@@ -63,11 +63,12 @@ Example: `~/.claude/skills/safe-json-construction/SKILL.md`
 ## Quality Criteria
 
 **Default to not creating.** Only extract if ALL of these apply:
+- **Struggled and figured out**: There was difficulty, debugging, or trial-and-error before finding the solution. If it went smoothly, Claude already knows it - no skill needed.
 - **Reusable**: Applicable to future situations
-- **Non-obvious**: Not basic knowledge
+- **Non-obvious**: Not basic knowledge Claude would already have
 - **Actionable**: Contains concrete steps
 
-Most conversations are routine - simple bug fixes, straightforward implementations, or basic Q&A don't need skills. Report "No skill worth extracting" and exit.
+If the task was completed smoothly without struggle, there's nothing to learn. Report "No skill worth extracting" and exit.
 
 ## Final Output
 
