@@ -8,7 +8,7 @@ A quality automation system using Claude Code Hooks and Subagents to enforce cod
 
 ### [skill-extractor](./plugins/skill-extractor)
 
-Extract learnings from conversation and save as skills.
+Extract learnings from conversation and save as reusable skills.
 
 ## Install
 
