@@ -3,7 +3,21 @@
 
 # Load common test data
 source "$(dirname "$0")/test-data-common.sh"
-source "$(dirname "$0")/../plugins/claude-code-quality-gate-example/scripts/common-config.sh"
+source "$(dirname "$0")/../plugins/claude-code-quality-gate/scripts/common-config.sh"
+
+# Portable timeout function (works on macOS and Linux)
+portable_timeout() {
+    local duration=$1
+    shift
+    if command -v gtimeout &> /dev/null; then
+        gtimeout "$duration" "$@"
+    elif command -v timeout &> /dev/null; then
+        timeout "$duration" "$@"
+    else
+        # Fallback: run without timeout
+        "$@"
+    fi
+}
 
 echo "=== Quality Gate Functions Test ==="
 
@@ -324,7 +338,7 @@ test_large_file_performance() {
     local end_time
     start_time=$(date +%s.%N)
     timeout 5 bash -c "
-        source './plugins/claude-code-quality-gate-example/scripts/common-config.sh'
+        source './plugins/claude-code-quality-gate/scripts/common-config.sh'
         get_quality_result '$large_perf_test'
     "
     local result_code=$?
@@ -397,7 +411,7 @@ test_count_attempts_performance() {
     local end_time
     start_time=$(date +%s.%N)
     timeout 10 bash -c "
-        source './plugins/claude-code-quality-gate-example/scripts/common-config.sh'
+        source './plugins/claude-code-quality-gate/scripts/common-config.sh'
         count_attempts_since_last_reset_point '$large_count_test' 10
     "
     local result_code=$?
@@ -456,8 +470,8 @@ performance_regression_test() {
     
     # Test with timeout to catch performance issues
     local start_time=$(date +%s.%N)
-    timeout 5 bash -c '
-        source "'"$(dirname "$0")"'/../plugins/claude-code-quality-gate-example/scripts/common-config.sh"
+    portable_timeout 5 bash -c '
+        source "'"$(dirname "$0")"'/../plugins/claude-code-quality-gate/scripts/common-config.sh"
         get_quality_result "'"$regression_transcript"'"
     '
     local timeout_result=$?

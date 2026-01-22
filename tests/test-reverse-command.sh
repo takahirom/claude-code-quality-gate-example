@@ -289,7 +289,7 @@ test_common_config_integration() {
     cat > "$test_script" << EOF
 #!/bin/bash
 # Source common-config.sh to test REVERSE_CMD setup
-source "$project_root/plugins/claude-code-quality-gate-example/scripts/common-config.sh"
+source "$project_root/plugins/claude-code-quality-gate/scripts/common-config.sh"
 
 # Test that REVERSE_CMD is set and functional
 if [[ -z "\$REVERSE_CMD" ]]; then
