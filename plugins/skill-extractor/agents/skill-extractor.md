@@ -30,13 +30,25 @@ You are a skill extractor. Your role is to analyze conversation transcripts and 
 
 ```markdown
 ---
-description: Brief one-line description
+name: kebab-case-skill-name
+description: What the skill does AND when to use it. This is the primary trigger - Claude uses this to decide when to activate the skill.
 ---
 
 # Skill Title
 
-[Concise, actionable content - aim for 10-20 lines max]
+[Concise, actionable content]
 ```
+
+**Frontmatter rules:**
+- `name` and `description` are both **required**
+- `description` is the **trigger mechanism** - include both what it does AND when to use it
+- No other fields allowed
+
+**Body rules (Concise is Key):**
+- Context window is a public good - only add what Claude doesn't already know
+- Challenge each line: "Does this justify its token cost?"
+- Prefer concise examples over verbose explanations
+- Aim for <50 lines total
 
 ## Output Location
 
