@@ -25,11 +25,5 @@ if [ "$line_count" -lt 10 ]; then
     exit 0
 fi
 
-# Check if skill extraction was already done in this session
-if grep -q "skill-extractor" "$transcript_path" 2>/dev/null; then
-    # Already extracted skills, allow stop
-    exit 0
-fi
-
 # Suggest skill extraction with transcript path
 echo "{\"decision\": \"block\", \"reason\": \"Consider extracting learnings from this session. Use the skill-extractor agent to analyze the conversation at $transcript_path and save valuable patterns as skills.\"}"

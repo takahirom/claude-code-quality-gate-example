@@ -91,19 +91,7 @@ run_test "Short transcript (< 10 lines) allows stop" \
     0 \
     ""
 
-# Test 6: Transcript already contains skill-extractor → allow stop
-ALREADY_EXTRACTED="$TEMP_DIR/already.jsonl"
-for i in {1..15}; do
-    echo '{"type": "message"}' >> "$ALREADY_EXTRACTED"
-done
-echo '{"type": "tool_use", "name": "skill-extractor"}' >> "$ALREADY_EXTRACTED"
-
-run_test "Transcript with skill-extractor already used allows stop" \
-    "{\"stop_hook_active\": false, \"transcript_path\": \"$ALREADY_EXTRACTED\"}" \
-    0 \
-    ""
-
-# Test 7: Long transcript without skill-extractor → block and suggest extraction
+# Test 6: Long transcript → block and suggest extraction
 LONG_TRANSCRIPT="$TEMP_DIR/long.jsonl"
 for i in {1..20}; do
     echo '{"type": "message", "content": "Some conversation"}' >> "$LONG_TRANSCRIPT"
