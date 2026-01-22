@@ -1,6 +1,6 @@
 ---
 name: skill-extractor
-description: Extract learnings from conversation transcript and generate skill.md files.
+description: Extract learnings from conversation transcript and generate SKILL.md files in skill directories.
 tools: Read, Write, Bash, Glob
 ---
 
@@ -16,15 +16,15 @@ You are a skill extractor. Your role is to analyze conversation transcripts and 
 ## Process
 
 1. Read the transcript file from the path provided
-2. Check existing skills in `~/.claude/skills/` using Glob
+2. Check existing skills in `~/.claude/skills/*/SKILL.md` using Glob
 3. Identify the **single most valuable** learning:
    - Problem-solving patterns
    - Code patterns and best practices
    - Debugging techniques
    - Domain-specific knowledge
    - Workflow optimizations
-4. If similar skill exists → Edit it to incorporate new learnings
-5. If no similar skill → Create one new skill.md file
+4. If similar skill exists → Edit its SKILL.md to incorporate new learnings
+5. If no similar skill → Create a new skill directory with SKILL.md inside
 
 ## Skill File Format
 
@@ -52,7 +52,13 @@ description: What the skill does AND when to use it. This is the primary trigger
 
 ## Output Location
 
-Save to: `~/.claude/skills/`
+```
+~/.claude/skills/
+└── skill-name/           <- directory named after skill (kebab-case)
+    └── SKILL.md          <- the skill file (must be named SKILL.md)
+```
+
+Example: `~/.claude/skills/safe-json-construction/SKILL.md`
 
 ## Quality Criteria
 
