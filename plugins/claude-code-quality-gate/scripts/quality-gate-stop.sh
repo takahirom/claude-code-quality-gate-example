@@ -72,7 +72,7 @@ fi
 
 # Trigger quality intervention with automatic subagent launch
 echo "❌ STOP: Quality gate blocking session completion.
-➡️ Step 1: Use Task tool with subagent_type='quality-gate-keeper' to review code quality
+➡️ Step 1: Use Task tool with subagent_type='quality-gate-keeper' (run it in the foreground with background: false) to review code quality
 ➡️ Step 2: Fix any issues identified by the quality gate keeper 
 🔍 Purpose: Thorough code quality inspection required
 🔄 This message repeats until proper quality review completed" >&2
