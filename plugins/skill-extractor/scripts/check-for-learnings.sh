@@ -28,5 +28,5 @@ fi
 # Suggest skill extraction with transcript path (use jq for safe JSON escaping)
 jq -n --arg path "$transcript_path" '{
   decision: "block",
-  reason: "Consider extracting learnings from this session. Use the skill-extractor agent to analyze the conversation at \($path) and save valuable patterns as skills."
+  reason: "Consider extracting learnings from this session. Use the skill-extractor agent (run it in the foreground with background: false) to analyze the conversation at \($path) and save valuable patterns as skills."
 }'
