@@ -23,6 +23,9 @@ fi
 
 source "$TESTS_DIR/test-data-common.sh"
 
+# Isolate the idempotency state file for tests (nonexistent path = no approved diff)
+export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-status-state.XXXXXX")"
+
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'

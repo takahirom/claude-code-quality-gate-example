@@ -14,7 +14,12 @@ You are a quality gate keeper. Your role is to:
 
 ## Quality Gate Process
 1. **Focus ONLY on current session changes** - do NOT analyze entire codebase
-2. **Identify actual changes made** - use git diff or explicit file list
+2. **Identify actual changes made** - diff against the main branch, not just the working tree, so committed-but-unmerged work is reviewed too:
+   ```bash
+   BASE=$(git merge-base HEAD main 2>/dev/null || git merge-base HEAD origin/main 2>/dev/null)
+   git diff "$BASE"                          # tracked changes since branching from main
+   git ls-files --others --exclude-standard  # new untracked files
+   ```
 3. **Check only modified files** - ignore unchanged existing code
 4. **Run ONLY relevant tests** - not the entire test suite:
    - Tests for modified files only

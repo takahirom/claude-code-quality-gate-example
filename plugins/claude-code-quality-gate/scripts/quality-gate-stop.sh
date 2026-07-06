@@ -37,6 +37,8 @@ if [[ -f "$transcript_path" ]]; then
         0)  # APPROVED
             echo "Quality gate APPROVED detected" >> "$LOG_FILE"
             echo "Quality gate completed successfully!" >> "$LOG_FILE"
+            # Record the approved diff so later stops skip re-review when unchanged
+            record_quality_gate_approval
             exit 0
             ;;
         1)  # REJECTED
@@ -63,11 +65,11 @@ elif ! git rev-parse --git-dir >/dev/null 2>&1; then
         echo "Not in git repository - skipping quality gate (set QUALITY_GATE_RUN_OUTSIDE_GIT=true to run)" >> "$LOG_FILE"
         exit 0
     fi
-elif [[ -z $(git diff --name-only 2>/dev/null) ]] && [[ -z $(git ls-files --others --exclude-standard 2>/dev/null) ]]; then
-    echo "No git changes detected - skipping quality gate" >> "$LOG_FILE"
+elif ! quality_gate_has_changes; then
+    echo "No changes vs ${QUALITY_GATE_DIFF_BASE} detected - skipping quality gate" >> "$LOG_FILE"
     exit 0
 else
-    echo "Git changes detected - proceeding with quality gate" >> "$LOG_FILE"
+    echo "Changes vs ${QUALITY_GATE_DIFF_BASE} detected - proceeding with quality gate" >> "$LOG_FILE"
 fi
 
 # Trigger quality intervention with automatic subagent launch

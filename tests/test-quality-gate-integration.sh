@@ -14,6 +14,9 @@ QUALITY_GATE_DIR="$PROJECT_ROOT/plugins/claude-code-quality-gate/scripts"
 # Load common test data
 source "$SCRIPT_DIR/test-data-common.sh"
 
+# Isolate the idempotency state file for tests (nonexistent path = no approved diff)
+export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-integ-state.XXXXXX")"
+
 # Verify quality gate scripts exist
 if [[ ! -f "$QUALITY_GATE_DIR/quality-gate-stop.sh" ]]; then
     echo "❌ Error: quality-gate-stop.sh not found at $QUALITY_GATE_DIR"
@@ -212,6 +215,11 @@ test_task_tool_quality_gate_workflow() {
 # Integration test - Task tool with stale approval 
 test_task_tool_stale_approval() {
     echo "Task tool with stale approval test"
+
+    # Verify that "edits after approval" is detected when no approval is recorded
+    # (another test's stop.sh writes to the shared state file, so isolate with a
+    # dedicated empty path)
+    export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-integ-stale.XXXXXX")"
     
     # Create transcript: APPROVED in object format, then edits (making approval stale)
     > "$TEST_TRANSCRIPT"

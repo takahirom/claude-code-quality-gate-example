@@ -20,6 +20,20 @@ fi
 # Set to true to enable quality gate checks in non-git directories
 QUALITY_GATE_RUN_OUTSIDE_GIT="${QUALITY_GATE_RUN_OUTSIDE_GIT:-false}"
 
+# Base branch for the review diff (default: main). Used to review the diff
+# from the merge-base with main, not just the working tree.
+QUALITY_GATE_DIFF_BASE="${QUALITY_GATE_DIFF_BASE:-main}"
+
+# Hash command (shasum on macOS, sha1sum on GNU). If neither exists, leave it
+# empty to disable idempotency checks (falls back to legacy edit detection).
+if command -v shasum >/dev/null 2>&1; then
+    QG_HASH_CMD="shasum"
+elif command -v sha1sum >/dev/null 2>&1; then
+    QG_HASH_CMD="sha1sum"
+else
+    QG_HASH_CMD=""
+fi
+
 # Configurable pattern for file editing tools (for MCP compatibility)
 # Support both old and new variable names for backward compatibility
 # Includes standard tools and serena MCP tools
@@ -34,6 +48,94 @@ check_dependencies() {
             exit 1
         fi
     done
+}
+
+# Resolve the merge-base with the main branch
+# Output: merge-base commit hash / returns non-zero if not found
+quality_gate_diff_base() {
+    local base="$QUALITY_GATE_DIFF_BASE"
+    local ref=""
+    # Resolve the local branch first, then the remote-tracking branch
+    if git rev-parse --verify --quiet "$base" >/dev/null 2>&1; then
+        ref="$base"
+    elif git rev-parse --verify --quiet "origin/$base" >/dev/null 2>&1; then
+        ref="origin/$base"
+    else
+        return 1
+    fi
+    git merge-base HEAD "$ref" 2>/dev/null
+}
+
+# Check whether there are any changes to review
+# Looks at untracked files and the diff from the merge-base with main
+# (including committed changes). Falls back to the legacy working-tree
+# diff when the base cannot be resolved.
+# Returns: 0 = changes exist / 1 = no changes
+quality_gate_has_changes() {
+    if [[ -n $(git ls-files --others --exclude-standard 2>/dev/null) ]]; then
+        return 0
+    fi
+    local base
+    if base=$(quality_gate_diff_base); then
+        if ! git diff --quiet "$base" 2>/dev/null; then
+            return 0
+        fi
+        return 1
+    fi
+    if [[ -n $(git diff --name-only 2>/dev/null) ]]; then
+        return 0
+    fi
+    return 1
+}
+
+# Output a hash of the current diff (diff from base + untracked file contents)
+# Used to record the state at approval time and detect whether anything
+# effectively changed after approval.
+# Returns an empty string (disabling idempotency) without git or a hash command.
+quality_gate_diff_hash() {
+    [[ -n "$QG_HASH_CMD" ]] || return 0
+    command -v git >/dev/null 2>&1 || return 0
+    git rev-parse --git-dir >/dev/null 2>&1 || return 0
+    local base
+    base=$(quality_gate_diff_base) || base=""
+    {
+        if [[ -n "$base" ]]; then
+            git diff "$base" 2>/dev/null
+        else
+            git diff 2>/dev/null
+        fi
+        # Include untracked file contents in the hashed diff
+        git ls-files --others --exclude-standard -z 2>/dev/null \
+          | while IFS= read -r -d '' f; do
+                echo "=== $f ==="
+                cat -- "$f" 2>/dev/null
+            done
+    } | $QG_HASH_CMD | awk '{print $1}'
+}
+
+# Output the path of the state file that stores the approved diff hash
+# Can be overridden via QUALITY_GATE_STATE_FILE (mainly for tests)
+quality_gate_state_file() {
+    if [[ -n "${QUALITY_GATE_STATE_FILE:-}" ]]; then
+        echo "$QUALITY_GATE_STATE_FILE"
+        return 0
+    fi
+    local root
+    root=$(git rev-parse --show-toplevel 2>/dev/null) || root="$PWD"
+    local key="unknown"
+    if [[ -n "$QG_HASH_CMD" ]]; then
+        key=$(printf '%s' "$root" | $QG_HASH_CMD | awk '{print $1}')
+    fi
+    echo "${TMPDIR:-/tmp}/claude_quality_gate_approved-$key"
+}
+
+# Record the diff hash once the result is APPROVED for the current diff
+# Later stops can then skip re-review as long as the diff is unchanged (idempotency)
+record_quality_gate_approval() {
+    local h
+    h=$(quality_gate_diff_hash)
+    [[ -z "$h" ]] && return 0
+    printf '%s\n' "$h" > "$(quality_gate_state_file)" 2>/dev/null || true
 }
 
 # Helper: Check for edits after given line number
@@ -146,6 +248,15 @@ get_quality_result() {
     if echo "$last_result" | grep -qE "✅.*APPROVED"; then
         # Check for file edits after approval
         if has_edits_after_line "$transcript_path" "$last_result_line"; then
+            # Edits happened after approval, but if the diff is identical to
+            # the approved one, treat it as approved instead of prompting a
+            # re-review (idempotency)
+            local approved_hash current_hash
+            approved_hash=$(cat "$(quality_gate_state_file)" 2>/dev/null)
+            current_hash=$(quality_gate_diff_hash)
+            if [[ -n "$approved_hash" && -n "$current_hash" && "$approved_hash" == "$current_hash" ]]; then
+                return 0  # Diff is unchanged since approval
+            fi
             return 2  # Stale approval
         fi
         return 0  # APPROVED

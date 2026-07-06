@@ -8,6 +8,11 @@ set +e
 # Source the common config to get the function
 source "$(dirname "$0")/../plugins/claude-code-quality-gate/scripts/common-config.sh"
 
+# Isolate the idempotency state file for tests (avoid contamination from
+# existing approval records). Default to a nonexistent path so no diff is
+# considered approved.
+export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-edge-state.XXXXXX")"
+
 # Test counter
 TESTS_PASSED=0
 TESTS_FAILED=0
@@ -98,6 +103,29 @@ test_stale_approval_detection() {
 {"parentUuid":"test-uuid","isSidechain":false,"userType":"external","sessionId":"test-session","type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Edit"}]}}
 EOF
     run_test "Stale approval detection" 2 "stale_approval.jsonl"
+}
+
+test_idempotent_approval_unchanged_diff() {
+    echo "Test 7b: Idempotent approval - edits after APPROVED but diff unchanged should return 0"
+    cat > idempotent_approval.jsonl << 'EOF'
+{"parentUuid":"test-uuid","isSidechain":false,"userType":"external","sessionId":"test-session","type":"user","message":{"role":"user","content":[{"type":"text","text":"Hello"}]}}
+{"parentUuid":"test-uuid","isSidechain":true,"userType":"external","sessionId":"test-session","type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Final Result: ✅ APPROVED - Code looks good"}]}}
+{"parentUuid":"test-uuid","isSidechain":false,"userType":"external","sessionId":"test-session","type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Edit"}]}}
+EOF
+    # Record the approved diff hash so it matches the current diff.
+    # Keep the state file outside the repository (inside it, the file would be
+    # hashed as an untracked file and invalidate itself).
+    local prev_state="$QUALITY_GATE_STATE_FILE"
+    export QUALITY_GATE_STATE_FILE="$(mktemp "${TMPDIR:-/tmp}/qg-idempotent-state.XXXXXX")"
+    quality_gate_diff_hash > "$QUALITY_GATE_STATE_FILE"
+    if [[ -s "$QUALITY_GATE_STATE_FILE" ]]; then
+        run_test "Idempotent approval (unchanged diff)" 0 "idempotent_approval.jsonl"
+    else
+        # Without a hash command idempotency is disabled, so stale (2) is acceptable
+        echo "⚠️  SKIP: no hash command available, idempotency disabled"
+    fi
+    rm -f "$QUALITY_GATE_STATE_FILE"
+    export QUALITY_GATE_STATE_FILE="$prev_state"
 }
 
 test_valid_approval_no_edits() {

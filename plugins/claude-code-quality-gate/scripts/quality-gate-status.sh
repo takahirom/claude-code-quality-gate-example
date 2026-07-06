@@ -57,8 +57,8 @@ elif ! git rev-parse --git-dir >/dev/null 2>&1; then
         fi
         exit 0
     fi
-elif [[ -z $(git diff --name-only 2>/dev/null) ]] && [[ -z $(git ls-files --others --exclude-standard 2>/dev/null) ]]; then
-    # No git changes - quality gate disabled
+elif ! quality_gate_has_changes; then
+    # No changes vs main - quality gate disabled
     if [[ "$EMOJI_MODE" == "true" ]]; then
         echo "🔒"
     else
