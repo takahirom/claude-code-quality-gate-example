@@ -23,7 +23,7 @@ fi
 
 source "$TESTS_DIR/test-data-common.sh"
 
-# 冪等判定の状態ファイルをテスト用に隔離する（存在しないパス = 承認済み差分なし）
+# Isolate the idempotency state file for tests (nonexistent path = no approved diff)
 export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-status-state.XXXXXX")"
 
 # Colors for output

@@ -14,7 +14,7 @@ QUALITY_GATE_DIR="$PROJECT_ROOT/plugins/claude-code-quality-gate/scripts"
 # Load common test data
 source "$SCRIPT_DIR/test-data-common.sh"
 
-# 冪等判定の状態ファイルをテスト用に隔離する（存在しないパス = 承認済み差分なし）
+# Isolate the idempotency state file for tests (nonexistent path = no approved diff)
 export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-integ-state.XXXXXX")"
 
 # Verify quality gate scripts exist
@@ -216,8 +216,9 @@ test_task_tool_quality_gate_workflow() {
 test_task_tool_stale_approval() {
     echo "Task tool with stale approval test"
 
-    # 承認記録が無い状態で「承認後の編集」を検知できることを確認する
-    # （別テストの stop.sh が共有状態ファイルに記録するため、専用の空パスに隔離する）
+    # Verify that "edits after approval" is detected when no approval is recorded
+    # (another test's stop.sh writes to the shared state file, so isolate with a
+    # dedicated empty path)
     export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-integ-stale.XXXXXX")"
     
     # Create transcript: APPROVED in object format, then edits (making approval stale)

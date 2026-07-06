@@ -8,8 +8,9 @@ set +e
 # Source the common config to get the function
 source "$(dirname "$0")/../plugins/claude-code-quality-gate/scripts/common-config.sh"
 
-# 冪等判定の状態ファイルをテスト用に隔離する（既存の承認記録に汚染されないため）
-# デフォルトは存在しないパスにして「承認済み差分なし」を保証する
+# Isolate the idempotency state file for tests (avoid contamination from
+# existing approval records). Default to a nonexistent path so no diff is
+# considered approved.
 export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-edge-state.XXXXXX")"
 
 # Test counter
@@ -111,16 +112,16 @@ test_idempotent_approval_unchanged_diff() {
 {"parentUuid":"test-uuid","isSidechain":true,"userType":"external","sessionId":"test-session","type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Final Result: ✅ APPROVED - Code looks good"}]}}
 {"parentUuid":"test-uuid","isSidechain":false,"userType":"external","sessionId":"test-session","type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Edit"}]}}
 EOF
-    # 承認時点の差分ハッシュを現在の差分に一致させて記録する
-    # 状態ファイルはリポジトリ外に置く（リポジトリ内だと未追跡ファイルとして
-    # 差分ハッシュに含まれ、自己無効化してしまうため）
+    # Record the approved diff hash so it matches the current diff.
+    # Keep the state file outside the repository (inside it, the file would be
+    # hashed as an untracked file and invalidate itself).
     local prev_state="$QUALITY_GATE_STATE_FILE"
     export QUALITY_GATE_STATE_FILE="$(mktemp "${TMPDIR:-/tmp}/qg-idempotent-state.XXXXXX")"
     quality_gate_diff_hash > "$QUALITY_GATE_STATE_FILE"
     if [[ -s "$QUALITY_GATE_STATE_FILE" ]]; then
         run_test "Idempotent approval (unchanged diff)" 0 "idempotent_approval.jsonl"
     else
-        # ハッシュコマンドが無い環境では冪等判定は無効なので stale (2) を許容する
+        # Without a hash command idempotency is disabled, so stale (2) is acceptable
         echo "⚠️  SKIP: no hash command available, idempotency disabled"
     fi
     rm -f "$QUALITY_GATE_STATE_FILE"

@@ -37,7 +37,7 @@ if [[ -f "$transcript_path" ]]; then
         0)  # APPROVED
             echo "Quality gate APPROVED detected" >> "$LOG_FILE"
             echo "Quality gate completed successfully!" >> "$LOG_FILE"
-            # 承認時点の差分を記録し、以降の Stop で無変更なら再レビューをスキップする
+            # Record the approved diff so later stops skip re-review when unchanged
             record_quality_gate_approval
             exit 0
             ;;
