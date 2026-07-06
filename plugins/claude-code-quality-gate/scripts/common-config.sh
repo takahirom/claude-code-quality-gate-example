@@ -20,6 +20,20 @@ fi
 # Set to true to enable quality gate checks in non-git directories
 QUALITY_GATE_RUN_OUTSIDE_GIT="${QUALITY_GATE_RUN_OUTSIDE_GIT:-false}"
 
+# 差分の基準ブランチ（デフォルト: main）。作業ツリーだけでなく main との
+# マージベースからの差分をレビュー対象にするために使う。
+QUALITY_GATE_DIFF_BASE="${QUALITY_GATE_DIFF_BASE:-main}"
+
+# ハッシュコマンド（macOS は shasum、GNU は sha1sum）。どちらも無ければ
+# 空にして冪等判定を無効化する（従来の編集検知にフォールバック）。
+if command -v shasum >/dev/null 2>&1; then
+    QG_HASH_CMD="shasum"
+elif command -v sha1sum >/dev/null 2>&1; then
+    QG_HASH_CMD="sha1sum"
+else
+    QG_HASH_CMD=""
+fi
+
 # Configurable pattern for file editing tools (for MCP compatibility)
 # Support both old and new variable names for backward compatibility
 # Includes standard tools and serena MCP tools
@@ -34,6 +48,92 @@ check_dependencies() {
             exit 1
         fi
     done
+}
+
+# main ブランチとのマージベースを解決する
+# 出力: マージベースのコミットハッシュ / 見つからなければ非ゼロで返す
+quality_gate_diff_base() {
+    local base="$QUALITY_GATE_DIFF_BASE"
+    local ref=""
+    # ローカルブランチ → リモート追跡の順に解決する
+    if git rev-parse --verify --quiet "$base" >/dev/null 2>&1; then
+        ref="$base"
+    elif git rev-parse --verify --quiet "origin/$base" >/dev/null 2>&1; then
+        ref="origin/$base"
+    else
+        return 1
+    fi
+    git merge-base HEAD "$ref" 2>/dev/null
+}
+
+# レビュー対象の変更が存在するか判定する
+# 未追跡ファイル、および main とのマージベースからの差分（コミット済み含む）を見る
+# base が解決できない場合は従来どおり作業ツリーの差分にフォールバックする
+# 返り値: 0 = 変更あり / 1 = 変更なし
+quality_gate_has_changes() {
+    if [[ -n $(git ls-files --others --exclude-standard 2>/dev/null) ]]; then
+        return 0
+    fi
+    local base
+    if base=$(quality_gate_diff_base); then
+        if ! git diff --quiet "$base" 2>/dev/null; then
+            return 0
+        fi
+        return 1
+    fi
+    if [[ -n $(git diff --name-only 2>/dev/null) ]]; then
+        return 0
+    fi
+    return 1
+}
+
+# 現在の差分（base からの差分 + 未追跡ファイルの内容）のハッシュを出力する
+# 承認時点の状態を記録し「承認後に実質的な変更がないか」を判定するために使う
+# git やハッシュコマンドが無い場合は空文字を返し、冪等判定を無効化する
+quality_gate_diff_hash() {
+    [[ -n "$QG_HASH_CMD" ]] || return 0
+    command -v git >/dev/null 2>&1 || return 0
+    git rev-parse --git-dir >/dev/null 2>&1 || return 0
+    local base
+    base=$(quality_gate_diff_base) || base=""
+    {
+        if [[ -n "$base" ]]; then
+            git diff "$base" 2>/dev/null
+        else
+            git diff 2>/dev/null
+        fi
+        # 未追跡ファイルの内容も差分に含める
+        git ls-files --others --exclude-standard -z 2>/dev/null \
+          | while IFS= read -r -d '' f; do
+                echo "=== $f ==="
+                cat -- "$f" 2>/dev/null
+            done
+    } | $QG_HASH_CMD | awk '{print $1}'
+}
+
+# 承認済み差分ハッシュを保存する状態ファイルのパスを出力する
+# QUALITY_GATE_STATE_FILE で上書き可能（主にテスト用）
+quality_gate_state_file() {
+    if [[ -n "${QUALITY_GATE_STATE_FILE:-}" ]]; then
+        echo "$QUALITY_GATE_STATE_FILE"
+        return 0
+    fi
+    local root
+    root=$(git rev-parse --show-toplevel 2>/dev/null) || root="$PWD"
+    local key="unknown"
+    if [[ -n "$QG_HASH_CMD" ]]; then
+        key=$(printf '%s' "$root" | $QG_HASH_CMD | awk '{print $1}')
+    fi
+    echo "${TMPDIR:-/tmp}/claude_quality_gate_approved-$key"
+}
+
+# APPROVED かつ現在の差分と一致することが確定した時点で差分ハッシュを記録する
+# これにより次回以降、差分が変わらなければ再レビューをスキップできる（冪等化）
+record_quality_gate_approval() {
+    local h
+    h=$(quality_gate_diff_hash)
+    [[ -z "$h" ]] && return 0
+    printf '%s\n' "$h" > "$(quality_gate_state_file)" 2>/dev/null || true
 }
 
 # Helper: Check for edits after given line number
@@ -146,6 +246,14 @@ get_quality_result() {
     if echo "$last_result" | grep -qE "✅.*APPROVED"; then
         # Check for file edits after approval
         if has_edits_after_line "$transcript_path" "$last_result_line"; then
+            # 承認後に編集はあるが、差分が承認時点と同一なら実質無変更なので
+            # 再レビューを促さず承認扱いにする（冪等化）
+            local approved_hash current_hash
+            approved_hash=$(cat "$(quality_gate_state_file)" 2>/dev/null)
+            current_hash=$(quality_gate_diff_hash)
+            if [[ -n "$approved_hash" && -n "$current_hash" && "$approved_hash" == "$current_hash" ]]; then
+                return 0  # 承認時点から差分が変わっていない
+            fi
             return 2  # Stale approval
         fi
         return 0  # APPROVED

@@ -97,9 +97,10 @@ This validates the entire workflow from test creation to quality intervention.
 The system uses quality-gate-keeper's direct output for decision making:
 
 1. **Direct Result Checking**: Parses transcript for `Final Result: ✅ APPROVED` or `Final Result: ❌ REJECTED`
-2. **Stale Approval Detection**: Automatically invalidates old approvals after file edits
-3. **Manual Override**: Type `SKIP QG` to bypass quality gate checks when needed
-4. **Loop Prevention**: Automatically stops after 10 quality check attempts to prevent infinite loops
+2. **Diff Base**: Changes are measured against the merge-base with `main` (configurable via `QUALITY_GATE_DIFF_BASE`), so committed-but-unmerged work is reviewed too — not just the working tree
+3. **Stale Approval Detection (idempotent)**: Invalidates old approvals after real edits, but if the diff is byte-identical to what was approved, the gate stays green and does not re-launch — so it won't loop on an unchanged diff
+4. **Manual Override**: Type `SKIP QG` to bypass quality gate checks when needed
+5. **Loop Prevention**: Automatically stops after 10 quality check attempts to prevent infinite loops
 
 
 ## Important Notes

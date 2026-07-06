@@ -5,6 +5,9 @@
 source "$(dirname "$0")/test-data-common.sh"
 source "$(dirname "$0")/../plugins/claude-code-quality-gate/scripts/common-config.sh"
 
+# 冪等判定の状態ファイルをテスト用に隔離する（存在しないパス = 承認済み差分なし）
+export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-func-state.XXXXXX")"
+
 # Portable timeout function (works on macOS and Linux)
 portable_timeout() {
     local duration=$1

@@ -23,6 +23,9 @@ fi
 
 source "$TESTS_DIR/test-data-common.sh"
 
+# 冪等判定の状態ファイルをテスト用に隔離する（存在しないパス = 承認済み差分なし）
+export QUALITY_GATE_STATE_FILE="$(mktemp -u "${TMPDIR:-/tmp}/qg-status-state.XXXXXX")"
+
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
